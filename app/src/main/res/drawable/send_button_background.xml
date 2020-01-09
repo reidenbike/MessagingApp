@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+<item>
+    <selector>
+        <item android:state_enabled="false">
+            <shape android:shape="oval">
+                <solid android:color="@color/text_bubble_other"/>
+            </shape>
+        </item>
+        <item android:state_pressed="false">
+            <shape android:shape="oval">
+                <solid android:color="@color/colorPrimary"/>
+            </shape>
+        </item>
+        <item android:state_pressed="true">
+            <shape android:shape="oval">
+                <solid android:color="@color/text_bubble_user_selected"/>
+            </shape>
+        </item>
+    </selector>
+</item>
+<item android:drawable="@drawable/ic_send_white_24dp"
+    android:bottom="8dp"
+    android:top="8dp"
+    android:left="9dp"
+    android:right="7dp"/>
+</layer-list>

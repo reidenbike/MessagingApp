@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Textosaurus Rex</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="send_button_label">Send</string>
+    <string name="attach_image">Attach Image</string>
+    <string name="delete_messages">Delete Messages</string>
+    <string name="type_a_message">Type a message</string>
+</resources>

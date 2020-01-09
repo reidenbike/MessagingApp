@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#006428</color>
+    <color name="colorPrimaryDark">#005000</color>
+    <color name="colorAccent">#2E7D32</color>
+    <color name="colorTitle">#ffffff</color>
+
+    <color name="text_bubble_user">#dcffdc</color>
+    <color name="text_bubble_user_selected">#64c864</color>
+    <color name="text_bubble_other">#eeefff</color>
+    <color name="text_bubble_other_selected">#9696a0</color>
+</resources>
