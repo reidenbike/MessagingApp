@@ -5,4 +5,5 @@
     <string name="attach_image">Attach Image</string>
     <string name="delete_messages">Delete Messages</string>
     <string name="type_a_message">Type a message</string>
+    <string name="profile_picture">Profile Picture</string>
 </resources>

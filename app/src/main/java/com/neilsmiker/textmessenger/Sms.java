@@ -1,5 +1,10 @@
 package com.neilsmiker.textmessenger;
 
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.ContactsContract;
+
 public class Sms{
     private String _id;
     private String _address;
@@ -7,6 +12,7 @@ public class Sms{
     private String _readState; //"0" for have not read sms and "1" for have read sms
     private String _time;
     private String _folderName;
+    private String _threadId;
 
     //Package-private variables
     private boolean selected = false;
@@ -30,6 +36,9 @@ public class Sms{
     public String getFolderName(){
         return _folderName;
     }
+    public String getThreadId(){
+        return _threadId;
+    }
 
 
     public void setId(String id){
@@ -50,6 +59,9 @@ public class Sms{
     public void setFolderName(String folderName){
         _folderName = folderName;
     }
+    public void setThreadId(String threadId){
+        _threadId = threadId;
+    }
 
     //Package-private
     void setSelected(boolean selected){
@@ -69,5 +81,4 @@ public class Sms{
             return _address;
         }
     }
-
 }

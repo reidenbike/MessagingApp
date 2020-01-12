@@ -2,7 +2,8 @@ package com.neilsmiker.textmessenger;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Service;
+import android.app.PendingIntent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,12 +14,12 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.provider.ContactsContract;
+import android.provider.Telephony;
 import android.telephony.SmsManager;
-import android.telephony.SmsMessage;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
@@ -43,58 +44,82 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NavUtils;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class MainActivitySMS extends AppCompatActivity implements ContentObserverCallbacks {
 
-    private static final String TAG = "TREX";
-
+    //Context/Lifecycle
     private Context mContext;
     private Activity mActivity;
+
+    //Final variables
+    private static final String TAG = "TREX";
+    public static final int DEFAULT_MSG_LENGTH_LIMIT = 160;
+    private static final int RC_PHOTO_PICKER = 2;
 
     //Menu:
     Menu optionsMenu;
 
-    public static final String ANONYMOUS = "anonymous";
-    public static final int DEFAULT_MSG_LENGTH_LIMIT = 1000;
-    private static final int RC_PHOTO_PICKER = 2;
-
-    private ListView mMessageListView;
-    private SmsMessageAdapter mMessageAdapter;
+    //UI
     private ProgressBar mProgressBar;
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
     private Button mSendButton;
 
+    private ListView mMessageListView;
+    private SmsMessageAdapter mMessageAdapter;
     private List<Sms> listMessages = new ArrayList<>();
     int width;
     private List<Integer> selectionList = new ArrayList<>();
 
     //SMS
     private static final int PERMISSIONS_REQUEST_CODE = 2020;
+    private String selectedAddress;
+    private String selectedThreadId;
+    private String selectedName;
+
+    //TODO find display limit from user settings?
     private int displayLimit = 50;
 
     //Broadcast Receiver
+
+    //Content Observer
     private MyContentObserver myContentObserver;
     private String lastID = "null";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_sms);
 
         // Get the application context
         mContext = getApplicationContext();
         mActivity = MainActivitySMS.this;
 
+        //Get intent extras
+        Bundle extras = getIntent().getExtras();
+        if(extras !=null)
+        {
+            selectedAddress = extras.getString("selectedAddress");
+            selectedThreadId = extras.getString("selectedThreadId");
+            selectedName = extras.getString("selectedName");
+        }
+
+        //Set up the toolbar
         Toolbar myToolbar = findViewById(R.id.my_toolbar);
-        myToolbar.setLogo(R.drawable.icons8_dinosaur_96);
-        myToolbar.setTitle(R.string.app_name);
+        //myToolbar.setLogo(R.drawable.icons8_dinosaur_96);
+        myToolbar.setTitle((selectedName != null) ? selectedName : getString(R.string.app_name));
         setSupportActionBar(myToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         // Initialize references to views
         mProgressBar = findViewById(R.id.progressBar);
@@ -110,7 +135,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 selectListItem(position, view, false);
             }
         });
-
         mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -118,8 +142,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 return true;
             }
         });
-
-        // Initialize message ListView and its adapter
+        // Find the display screen width in pixels to properly size the max text bubble widths in the Adapters
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
@@ -137,6 +160,21 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 intent.setType("image/jpeg");
                 intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
                 startActivityForResult(Intent.createChooser(intent, "Complete action using"), RC_PHOTO_PICKER);
+            }
+        });
+
+        //TODO if over SMS char limit, switch to MMS or concatenate and segment.
+        mMessageEditText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(DEFAULT_MSG_LENGTH_LIMIT)});
+
+        // Send button sends a message and clears the EditText
+        mSendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                sendSMS(mMessageEditText.getText().toString(), selectedAddress);
+
+                // Clear input box
+                mMessageEditText.setText("");
             }
         });
 
@@ -159,35 +197,10 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             public void afterTextChanged(Editable editable) {
             }
         });
-        mMessageEditText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(DEFAULT_MSG_LENGTH_LIMIT)});
 
-        // Send button sends a message and clears the EditText
-        mSendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //TODO change to actual target phone #
-                sendSMS(mMessageEditText.getText().toString(), "2406045122");
-
-                // Clear input box
-                mMessageEditText.setText("");
-            }
-        });
-
-        //SMS Initialization:
+        //Content Observer Initialization:
         Handler handler = new Handler();
         myContentObserver = new MyContentObserver(handler);
-
-/*        if (checkPermission()){
-            initializeSmsList();
-
-            Handler handler = new Handler();
-            myContentObserver = new MyContentObserver(handler);
-            this.getApplicationContext()
-                    .getContentResolver()
-                    .registerContentObserver(
-                            Uri.parse("content://sms/"), true,
-                            myContentObserver);
-        }*/
     }
 
     @Override
@@ -210,11 +223,11 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case android.R.id.home:
+                NavUtils.navigateUpFromSameTask(this);
+                return true;
             case R.id.delete_item:
                 deleteMessages();
-                return true;
-            case R.id.sign_out_menu:
-                // Sign out
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -239,6 +252,8 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 myContentObserver.setCallbacks(MainActivitySMS.this);
             }
         }
+
+        requestSetDefault();
     }
 
     @Override
@@ -316,12 +331,12 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
         int lastViewedPosition = mMessageListView.getFirstVisiblePosition();
 
-        //TODO Delete selected messages from folder
-        /*for(int i : selectionList) {
-            Log.i(TAG,"Removed int " + i + ", " + friendlyMessages.get(i).getText());
-            mMessagesDatabaseReference.child(friendlyMessages.get(i).getKey()).removeValue();
-            friendlyMessages.remove(i);
-        }*/
+        //TODO add error handling
+
+        for(int i : selectionList) {
+            getContentResolver().delete(Uri.parse("content://sms/" + listMessages.get(i).getId()), null, null);
+            listMessages.remove(i);
+        }
 
         selectionList.clear();
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
@@ -332,17 +347,8 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
 
     //----------------------------------------------------------------------------------------
-    //SMS
-    private void disableSmsButton() {
-        Toast.makeText(this, "SMS usage disabled", Toast.LENGTH_LONG).show();
-        mSendButton.setVisibility(View.INVISIBLE);
-        /*Button retryButton = findViewById(R.id.button_retry);
-        retryButton.setVisibility(View.VISIBLE);*/
-    }
-
-    private void enableSmsButton() {
-        mSendButton.setVisibility(View.VISIBLE);
-    }
+    //Permissions and Set Default Requests
+    //----------------------------------------------------------------------------------------
 
     protected boolean checkPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
@@ -439,25 +445,53 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         }
     }
 
+    private void requestSetDefault(){
+        final String myPackageName = getPackageName();
+        if (!Telephony.Sms.getDefaultSmsPackage(this).equals(myPackageName)) {
+            // App is not default.
+            // Show the "not currently set as the default SMS app" interface
+            View viewGroup = findViewById(R.id.requestDefaultLayout);
+            viewGroup.setVisibility(View.VISIBLE);
+
+            // Set up a button that allows the user to change the default SMS app
+            Button button = findViewById(R.id.btnSetDefault);
+            button.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    Intent intent =
+                            new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
+                            myPackageName);
+                    startActivity(intent);
+                }
+            });
+        } else {
+            // App is the default.
+            // Hide the "not currently set as the default SMS app" interface
+            View viewGroup = findViewById(R.id.requestDefaultLayout);
+            viewGroup.setVisibility(View.GONE);
+        }
+    }
+
+    private void disableSmsButton() {
+        Toast.makeText(this, "SMS usage disabled", Toast.LENGTH_LONG).show();
+        mSendButton.setVisibility(View.INVISIBLE);
+        /*Button retryButton = findViewById(R.id.button_retry);
+        retryButton.setVisibility(View.VISIBLE);*/
+    }
+
+    private void enableSmsButton() {
+        mSendButton.setVisibility(View.VISIBLE);
+    }
+
+    //----------------------------------------------------------------------------------------
+    //SMS
+    //----------------------------------------------------------------------------------------
+
     private void sendSMS(String message, String cellNumber) {
         if (checkPermission()) {
             SmsManager sms = SmsManager.getDefault();
             sms.sendTextMessage(cellNumber, null, message, null, null);
-
-            //TODO Instead, get from sent folder using the number of sent messages as the limit if that works better to get ID and other params.
-            // Also add listener to check if message sends correctly and address errors. Display progress bar until callback triggers.
-/*            Sms objSms = new Sms();
-            objSms.setId(null);
-            objSms.setAddress(mUsername);
-            objSms.setMsg(message);
-            objSms.setReadState("1");
-            objSms.setTime(String.valueOf(System.currentTimeMillis()));
-            objSms.setFolderName("sent");
-            objSms.setDisplayName(null);
-
-            //mMessageAdapter.add(objSms);
-            listMessages.add(objSms);
-            mMessageAdapter.notifyDataSetChanged();*/
+            // TODO Also add listener to check if message sends correctly and address errors. Display progress bar until callback triggers.
         }
     }
 
@@ -467,11 +501,17 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         /*Uri message = Uri.parse("content://sms/");
         ContentResolver cr = this.getContentResolver();*/
 
-        Cursor c = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
-
+        Cursor c;
+        if (selectedThreadId == null) {
+            c = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
+        } else {
+            c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{selectedThreadId}, null);
+        }
         //Cursor c = getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);
 
         if (c != null && c.moveToFirst()) {
+
+            //Log.i(TAG, Arrays.toString(c.getColumnNames()));
             int i = 0;
             do {
                 i++;
@@ -513,33 +553,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         mMessageListView.setAdapter(mMessageAdapter);
     }
 
-    public String getContactName(final String phoneNumber, Context context)
-    {
-        if (checkPermission()) {
-            Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
-
-            String[] projection = new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME};
-
-            String contactName = "";
-            Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
-
-            if (cursor != null) {
-                if (cursor.moveToFirst()) {
-                    contactName = cursor.getString(0);
-                }
-                cursor.close();
-            }
-
-            return contactName;
-        }
-        return null;
-    }
-
-    //Broadcast Receiver
-/*    public static MainActivitySMS getInstance(){
-        return mainActivitySMS;
-    }*/
-
     @Override
     public void updateMessageFeed() {
         Uri uriSMSURI = Uri.parse("content://sms");
@@ -577,37 +590,91 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         }
     }
 
-/*    public void updateMessageFeed(final SmsMessage[] messages) {
-        MainActivitySMS.this.runOnUiThread(new Runnable() {
-            public void run() {
-                //TODO Use commented out block below instead of getAllSms, but figure out what value to use for setID.
-                // Or count the number of new messages, limit getAllSms to that number and add to listMessages if ID is
-                // easiest to get after SMS is saved to folder.
-                for(SmsMessage message : messages) {
-                    Sms objSms = new Sms();
-                    objSms.setId(String.valueOf(message.getProtocolIdentifier()));
-                    objSms.setAddress(message.getOriginatingAddress());
-                    objSms.setMsg(message.getMessageBody());
-                    objSms.setReadState("1");
-                    objSms.setTime(String.valueOf(message.getTimestampMillis()));
-                    objSms.setFolderName("inbox");
-                    objSms.setDisplayName(getContactName(objSms.getAddress(),mContext));
+    //--------------------------------------------------------------------------------
+    //Contacts: Add Contacts methods below
+    //--------------------------------------------------------------------------------
 
-                    listMessages.add(objSms);
+    //Returns an ArrayList of unique addresses in the sms inbox.
+    //TODO Add check for target addresses for cases where user sends message to recipient without any existing messages to display
+    // that conversation thread as well.
+    private List<String> getActiveContacts(){
+        Uri uri = Uri.parse("content://sms");
+        //Using Distinct messes up the order by most recent...
+        Cursor c = getContentResolver().query(uri, new String[]{"thread_id","address"}, null, null, null);
+        List <String> listContact;
+        listContact = new ArrayList<>();
+        listContact.clear();
+
+        List <String> listThread;
+        listThread = new ArrayList<>();
+        listThread.clear();
+
+        if(c != null && c.moveToFirst()) {
+            do {
+                String threadId = c.getString(c.getColumnIndexOrThrow("thread_id"));
+                if (!listThread.contains(threadId)){
+                    listThread.add(threadId);
+                    //listContact.add(getContactName(c.getString(c.getColumnIndexOrThrow("address")),this));
+                    listContact.add(c.getString(c.getColumnIndexOrThrow("address")));
                 }
+            } while (c.moveToNext());
+        }
 
-                //listMessages = getAllSms();
-                mMessageAdapter.notifyDataSetChanged();
+        if (c != null) {
+            c.close();
+        }
+
+        return listContact;
+    }
+
+    public String getContactName(final String phoneNumber, Context context)
+    {
+        if (checkPermission()) {
+            Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+
+            String[] projection = new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME};
+
+            String contactName = phoneNumber;
+            Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
+
+            if (cursor != null) {
+                if (cursor.moveToFirst()) {
+                    contactName = cursor.getString(0);
+                    if (contactName.equals("")){
+                        contactName = phoneNumber;
+                    }
+                }
+                cursor.close();
             }
-        });
-    }*/
+
+            return contactName;
+        }
+        return null;
+    }
+
+    //--------------------------------------------------------------------------------
+    //End Contacts
+    //--------------------------------------------------------------------------------
+
+
+    //--------------------------------------------------------------------------------
+    //MMS: Add MMS methods below
+    //--------------------------------------------------------------------------------
+
+
+
+    //--------------------------------------------------------------------------------
+    //End MMS
+    //--------------------------------------------------------------------------------
+
+
+
 }
 
 class MyContentObserver extends ContentObserver {
     private ContentObserverCallbacks contentObserverCallbacks;
-    //String lastID = "null";
 
-    public MyContentObserver(Handler h) {
+    MyContentObserver(Handler h) {
         super(h);
     }
 
@@ -620,35 +687,10 @@ class MyContentObserver extends ContentObserver {
     public void onChange(boolean selfChange) {
         super.onChange(selfChange);
 
-/*        Uri uriSMSURI = Uri.parse("content://sms");
-
-        Cursor cur = MainActivitySMS.getInstance().getContentResolver().query(uriSMSURI, null, null,
-                null, null);
-        cur.moveToNext();
-
-        String protocol = cur.getString(cur.getColumnIndex("protocol"));
-        String id = cur.getString(cur.getColumnIndexOrThrow("_id"));
-
-        if (!id.equals(lastID)) {
-            if (protocol == null) {
-                //the message is sent out just now
-                Log.d("TREX", "Sent: " + cur.getString(cur.getColumnIndexOrThrow("body")) + ", Status: " +
-                        cur.getString(cur.getColumnIndexOrThrow("address")));
-            } else {
-                //the message is received just now
-                Log.d("TREX", "Received: " + cur.getString(cur.getColumnIndexOrThrow("body")) + ", Status: " +
-                        cur.getString(cur.getColumnIndexOrThrow("address")));
-            }
-        }*/
-
         contentObserverCallbacks.updateMessageFeed();
-
-        /*lastID = id;
-
-        cur.close();*/
     }
 
-    public void setCallbacks(ContentObserverCallbacks callbacks) {
+    void setCallbacks(ContentObserverCallbacks callbacks) {
         contentObserverCallbacks = callbacks;
     }
 }
