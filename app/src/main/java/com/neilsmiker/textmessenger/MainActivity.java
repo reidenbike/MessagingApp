@@ -50,9 +50,6 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
     //Menu:
     Menu optionsMenu;
 
-    public static final int DEFAULT_MSG_LENGTH_LIMIT = 160;
-    private static final int RC_PHOTO_PICKER = 2;
-
     private ListView mConversationListView;
     //private SmsMessageAdapter mMessageAdapter;
     private ConversationsAdapter mConversationsAdapter;
