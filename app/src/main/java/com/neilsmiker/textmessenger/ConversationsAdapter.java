@@ -14,22 +14,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 public class ConversationsAdapter extends ArrayAdapter<Sms> {
 
-    private String TAG = "CONVERSATION_ADAPTER";
+    //private String TAG = "CONVERSATION_ADAPTER";
     private int width;
     private Context context;
 
@@ -44,11 +40,8 @@ public class ConversationsAdapter extends ArrayAdapter<Sms> {
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {
         Sms message = getItem(position);
         String userName;
-        String folder;
         if (message != null) {
             userName = message.getDisplayName();
-            folder = message.getFolderName();
-
 
             convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.item_conversation, parent, false);
 
@@ -100,7 +93,6 @@ public class ConversationsAdapter extends ArrayAdapter<Sms> {
     }
 
     private void selectListItem(Sms message, TextView name, TextView lastMessage, ConstraintLayout conversationBubble){
-        boolean isUser = message.getFolderName().equals("sent");
         if (!message.isSelected()){
             conversationBubble.setBackground(context.getDrawable(R.drawable.conversation_bubble));
             name.setTextColor(Color.parseColor("#000000"));

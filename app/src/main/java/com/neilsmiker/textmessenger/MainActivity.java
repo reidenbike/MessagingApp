@@ -2,6 +2,7 @@ package com.neilsmiker.textmessenger;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
@@ -139,6 +141,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
         }
 
         requestSetDefault();
+        Log.i(TAG,"onResume Called");
     }
 
     @Override
@@ -147,33 +150,19 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
     }
 
     private void selectListItem(int position, View view, boolean longClick) {
-        TextView tv = view.findViewById(R.id.messageTextView);
-        LinearLayout textBubble = view.findViewById(R.id.textBubble);
-
         Sms message = listConversations.get(position);
         boolean isUser = message.getFolderName().equals("sent");
+        //TODO highlight selected conversations
         if (selectionList.contains(position)) {
             //TODO Pretty sure removal by index can't be replaced here, but test this later
             selectionList.remove(selectionList.indexOf(position));
             message.setSelected(false);
-            if (isUser) {
-                textBubble.setBackground(getDrawable(R.drawable.text_bubble_user));
-            } else {
-                textBubble.setBackground(getDrawable(R.drawable.text_bubble_other));
-            }
-            tv.setTextColor(Color.parseColor("#000000"));
             Log.i(TAG, String.valueOf(selectionList));
         } else if (selectionList.size() > 0 || longClick) {
             //TODO Add on main back button pushed action to clear selection, else super.
             // Also enable back button on action bar with same action.
             selectionList.add(position);
             message.setSelected(true);
-            if (isUser) {
-                textBubble.setBackground(getDrawable(R.drawable.text_bubble_user_selected));
-            } else {
-                textBubble.setBackground(getDrawable(R.drawable.text_bubble_other_selected));
-            }
-            tv.setTextColor(getResources().getColor(R.color.colorTitle));
         } else {
             Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
             intent.putExtra("selectedAddress",message.getAddress());
@@ -197,7 +186,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
 
         int lastViewedPosition = mConversationListView.getFirstVisiblePosition();
 
-        //TODO add error handling
+        //TODO delete all messages in the selected conversation
 
         /*for(int i : selectionList) {
             getContentResolver().delete(Uri.parse("content://sms/" + listConversations.get(i).getId()), null, null);
@@ -314,14 +303,40 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
             View viewGroup = findViewById(R.id.requestDefaultLayout);
             viewGroup.setVisibility(View.VISIBLE);
 
+            //Get Package manager and service component names
+            final PackageManager packageManager = mContext.getPackageManager();
+
+            final ComponentName smsReceiver = new ComponentName(mContext,SMSreceiver.class);
+            final ComponentName mmsReceiver = new ComponentName(mContext,MmsReceiver.class);
+            final ComponentName headlessSmsSendService = new ComponentName(mContext,HeadlessSmsSendService.class);
+
+            //Disable all services
+            if (packageManager.getComponentEnabledSetting(smsReceiver) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(smsReceiver, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
+            if (packageManager.getComponentEnabledSetting(mmsReceiver) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(mmsReceiver, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
+            if (packageManager.getComponentEnabledSetting(headlessSmsSendService) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(headlessSmsSendService, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
+
             // Set up a button that allows the user to change the default SMS app
             Button button = findViewById(R.id.btnSetDefault);
             button.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-                    Intent intent =
-                            new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
-                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
-                            myPackageName);
+                    if (packageManager.getComponentEnabledSetting(smsReceiver) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                        packageManager.setComponentEnabledSetting(smsReceiver, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                    }
+                    if (packageManager.getComponentEnabledSetting(mmsReceiver) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                        packageManager.setComponentEnabledSetting(mmsReceiver, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                    }
+                    if (packageManager.getComponentEnabledSetting(headlessSmsSendService) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                        packageManager.setComponentEnabledSetting(headlessSmsSendService, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                    }
+
+                    Intent intent = new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, myPackageName);
                     startActivity(intent);
                 }
             });
@@ -331,31 +346,6 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
             View viewGroup = findViewById(R.id.requestDefaultLayout);
             viewGroup.setVisibility(View.GONE);
         }
-    }
-
-    public List<Sms> getAllSms() {
-        List<Sms> lstSms = new ArrayList<>();
-
-        Cursor c = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
-
-        if (c != null && c.moveToFirst()) {
-
-            //Log.i(TAG, Arrays.toString(c.getColumnNames()));
-            int i = 0;
-            do {
-                i++;
-                lstSms.add(0,createSmsObject(c));
-            } while (c.moveToNext() && i < displayLimit);
-        } else {
-            // Inbox Empty
-            //TODO Update UI to read Empty/nothing to see here etc.
-        }
-
-        if (c != null) {
-            c.close();
-        }
-
-        return lstSms;
     }
 
     private void initializeConversationList() {

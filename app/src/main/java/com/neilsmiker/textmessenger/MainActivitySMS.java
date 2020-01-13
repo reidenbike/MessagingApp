@@ -3,7 +3,9 @@ package com.neilsmiker.textmessenger;
 import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -51,6 +53,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -146,7 +149,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        width = (int) (.8 * size.x);
+        width = (int) (size.x);
 
         // Initialize progress bar
         mProgressBar.setVisibility(ProgressBar.INVISIBLE);
@@ -273,7 +276,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        int width = (int) (.8 * size.x);
+        int width = (size.x);
 
         mMessageAdapter = new SmsMessageAdapter(this, R.layout.item_message_user, listMessages, width);
         mMessageListView.setAdapter(mMessageAdapter);
@@ -281,7 +284,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
     private void selectListItem(int position, View view, boolean longClick) {
         TextView tv = view.findViewById(R.id.messageTextView);
-        TextView txtTimestamp = view.findViewById(R.id.txtTimestamp);
         LinearLayout textBubble = view.findViewById(R.id.textBubble);
 
         Sms message = listMessages.get(position);
@@ -308,12 +310,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 textBubble.setBackground(getDrawable(R.drawable.text_bubble_other_selected));
             }
             tv.setTextColor(getResources().getColor(R.color.colorTitle));
-        } else {
-            if (txtTimestamp.getVisibility() == View.GONE) {
-                txtTimestamp.setVisibility(View.VISIBLE);
-            } else {
-                txtTimestamp.setVisibility(View.GONE);
-            }
         }
 
         if (selectionList.size() > 0) {
@@ -453,14 +449,40 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             View viewGroup = findViewById(R.id.requestDefaultLayout);
             viewGroup.setVisibility(View.VISIBLE);
 
+            //Get Package manager and service component names
+            final PackageManager packageManager = mContext.getPackageManager();
+
+            final ComponentName smsReceiver = new ComponentName(mContext,SMSreceiver.class);
+            final ComponentName mmsReceiver = new ComponentName(mContext,MmsReceiver.class);
+            final ComponentName headlessSmsSendService = new ComponentName(mContext,HeadlessSmsSendService.class);
+
+            //Disable all services
+            if (packageManager.getComponentEnabledSetting(smsReceiver) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(smsReceiver, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
+            if (packageManager.getComponentEnabledSetting(mmsReceiver) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(mmsReceiver, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
+            if (packageManager.getComponentEnabledSetting(headlessSmsSendService) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(headlessSmsSendService, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
+
             // Set up a button that allows the user to change the default SMS app
             Button button = findViewById(R.id.btnSetDefault);
             button.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-                    Intent intent =
-                            new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
-                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
-                            myPackageName);
+                    if (packageManager.getComponentEnabledSetting(smsReceiver) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                        packageManager.setComponentEnabledSetting(smsReceiver, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                    }
+                    if (packageManager.getComponentEnabledSetting(mmsReceiver) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                        packageManager.setComponentEnabledSetting(mmsReceiver, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                    }
+                    if (packageManager.getComponentEnabledSetting(headlessSmsSendService) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                        packageManager.setComponentEnabledSetting(headlessSmsSendService, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                    }
+
+                    Intent intent = new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, myPackageName);
                     startActivity(intent);
                 }
             });
@@ -469,6 +491,10 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             // Hide the "not currently set as the default SMS app" interface
             View viewGroup = findViewById(R.id.requestDefaultLayout);
             viewGroup.setVisibility(View.GONE);
+
+            Log.i(TAG,"App is default, SMS receiver enabled?: " +
+                    (mContext.getPackageManager().getComponentEnabledSetting(new ComponentName(mContext,SMSreceiver.class)) ==
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED));
         }
     }
 
@@ -491,6 +517,11 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         if (checkPermission()) {
             SmsManager sms = SmsManager.getDefault();
             sms.sendTextMessage(cellNumber, null, message, null, null);
+
+            ContentValues values = new ContentValues();
+            values.put(Telephony.Sms.ADDRESS, cellNumber);
+            values.put(Telephony.Sms.BODY, message);
+            getContentResolver().insert(Telephony.Sms.Sent.CONTENT_URI, values);
             // TODO Also add listener to check if message sends correctly and address errors. Display progress bar until callback triggers.
         }
     }
@@ -511,7 +542,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
         if (c != null && c.moveToFirst()) {
 
-            //Log.i(TAG, Arrays.toString(c.getColumnNames()));
+            Log.i(TAG, Arrays.toString(c.getColumnNames()));
             int i = 0;
             do {
                 i++;
