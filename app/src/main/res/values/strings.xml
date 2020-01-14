@@ -6,4 +6,6 @@
     <string name="delete_messages">Delete Messages</string>
     <string name="type_a_message">Type a message</string>
     <string name="profile_picture">Profile Picture</string>
+    <string name="channel_name">textosaurusrex</string>
+    <string name="channel_description">SMS notification channel for Textosaurus Rex</string>
 </resources>

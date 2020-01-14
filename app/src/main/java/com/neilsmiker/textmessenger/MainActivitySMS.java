@@ -534,7 +534,8 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
         Cursor c;
         if (selectedThreadId == null) {
-            c = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
+            //c = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
+            c = getContentResolver().query(Uri.parse("content://sms"), null, "address = ?", new String[]{selectedAddress}, null);
         } else {
             c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{selectedThreadId}, null);
         }
