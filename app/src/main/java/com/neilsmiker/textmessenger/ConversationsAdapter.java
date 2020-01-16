@@ -22,17 +22,23 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class ConversationsAdapter extends ArrayAdapter<Sms> {
 
     //private String TAG = "CONVERSATION_ADAPTER";
     private int width;
     private Context context;
+    private SimpleDateFormat hourDateFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
+    //private SimpleDateFormat hour24DateFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    private SimpleDateFormat dayDateFormat = new SimpleDateFormat("M/d/yy", Locale.getDefault());
+    private String currentDate;
 
     ConversationsAdapter(Context context, int resource, List<Sms> objects, int width) {
         super(context, resource, objects);
         this.width = width;
         this.context = context;
+        currentDate = dayDateFormat.format(new Date(System.currentTimeMillis()));
     }
 
     @Override
@@ -58,10 +64,12 @@ public class ConversationsAdapter extends ArrayAdapter<Sms> {
             String timestamp = message.getTime();
 
             if (timestamp != null) {
-                long dv = Long.valueOf(timestamp);
-                Date df = new Date(dv);
-                String vv = new SimpleDateFormat("h:mma").format(df);
-                txtTimestamp.setText(vv);
+                Date date = new Date(Long.valueOf(timestamp));
+                String messageDate = dayDateFormat.format(date);
+                if (messageDate.equals(currentDate)){
+                    messageDate = hourDateFormat.format(date);
+                }
+                txtTimestamp.setText(messageDate);
             }
 
             boolean isPhoto = false /*message.getPhotoUrl() != null*/;
@@ -79,11 +87,11 @@ public class ConversationsAdapter extends ArrayAdapter<Sms> {
 
             txtProfileName.setText(userName);
 
-            if (message.getReadState().equals("1")){
+            if (message.getNumberUnread().equals("0")){
                 txtUnreadBadge.setVisibility(View.GONE);
             } else {
                 txtUnreadBadge.setVisibility(View.VISIBLE);
-                txtUnreadBadge.setText("1");
+                txtUnreadBadge.setText(message.getNumberUnread());
             }
 
             selectListItem(message,txtProfileName,txtLastMessage,conversationLayout);

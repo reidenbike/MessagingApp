@@ -14,6 +14,8 @@ public class Sms{
     private String _folderName;
     private String _threadId;
 
+    private String _numberUnread;
+
     //Package-private variables
     private boolean selected = false;
     private String displayName = null;
@@ -39,6 +41,9 @@ public class Sms{
     public String getThreadId(){
         return _threadId;
     }
+    public String getNumberUnread(){
+        return _numberUnread;
+    }
 
 
     public void setId(String id){
@@ -61,6 +66,9 @@ public class Sms{
     }
     public void setThreadId(String threadId){
         _threadId = threadId;
+    }
+    public void setNumberUnread(String numberUnread){
+        _numberUnread = numberUnread;
     }
 
     //Package-private

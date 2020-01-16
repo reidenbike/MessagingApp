@@ -2,9 +2,7 @@ package com.neilsmiker.textmessenger;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.ComponentName;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,7 +14,6 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract;
@@ -25,7 +22,6 @@ import android.telephony.SmsManager;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -40,7 +36,6 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,12 +43,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NavUtils;
 import androidx.core.content.ContextCompat;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -241,8 +231,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     protected void onResume() {
         super.onResume();
 
-        //TODO Completely refresh listview and get all sms on resume
-
         //SMS Initialization:
         if (checkPermission()){
 
@@ -298,7 +286,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 textBubble.setBackground(getDrawable(R.drawable.text_bubble_other));
             }
             tv.setTextColor(Color.parseColor("#000000"));
-            Log.i(TAG, String.valueOf(selectionList));
+            //Log.i(TAG, String.valueOf(selectionList));
         } else if (selectionList.size() > 0 || longClick) {
             //TODO Add on main back button pushed action to clear selection, else super.
             // Also enable back button on action bar with same action.
@@ -320,7 +308,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
         Collections.sort(selectionList, Collections.<Integer>reverseOrder());
 
-        Log.i(TAG, String.valueOf(selectionList));
+        //Log.i(TAG, String.valueOf(selectionList));
     }
 
     private void deleteMessages() {
@@ -492,9 +480,9 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             View viewGroup = findViewById(R.id.requestDefaultLayout);
             viewGroup.setVisibility(View.GONE);
 
-            Log.i(TAG,"App is default, SMS receiver enabled?: " +
+            /*Log.i(TAG,"App is default, SMS receiver enabled?: " +
                     (mContext.getPackageManager().getComponentEnabledSetting(new ComponentName(mContext,SMSreceiver.class)) ==
-                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED));
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED));*/
         }
     }
 
@@ -518,11 +506,13 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             SmsManager sms = SmsManager.getDefault();
             sms.sendTextMessage(cellNumber, null, message, null, null);
 
-            ContentValues values = new ContentValues();
-            values.put(Telephony.Sms.ADDRESS, cellNumber);
-            values.put(Telephony.Sms.BODY, message);
-            getContentResolver().insert(Telephony.Sms.Sent.CONTENT_URI, values);
-            // TODO Also add listener to check if message sends correctly and address errors. Display progress bar until callback triggers.
+            if (Telephony.Sms.getDefaultSmsPackage(this).equals(getPackageName())) {
+                ContentValues values = new ContentValues();
+                values.put(Telephony.Sms.ADDRESS, cellNumber);
+                values.put(Telephony.Sms.BODY, message);
+                getContentResolver().insert(Telephony.Sms.Sent.CONTENT_URI, values);
+            }
+            // TODO Also add listener to check if message sends correctly and address errors. Display spinner until callback triggers?
         }
     }
 
@@ -543,7 +533,12 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
         if (c != null && c.moveToFirst()) {
 
-            Log.i(TAG, Arrays.toString(c.getColumnNames()));
+            /*Log.i(TAG, Arrays.toString(c.getColumnNames()));*/
+            /*for (String column:c.getColumnNames()){
+                String item = c.getString(c.getColumnIndexOrThrow(column));
+                Log.i(TAG, column + ": " + item);
+            }*/
+
             int i = 0;
             do {
                 i++;
@@ -552,7 +547,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 objSms.setAddress(c.getString(c
                         .getColumnIndexOrThrow("address")));
                 objSms.setMsg(c.getString(c.getColumnIndexOrThrow("body")));
-                objSms.setReadState(c.getString(c.getColumnIndex("read")));
+                //objSms.setReadState(c.getString(c.getColumnIndex("read")));
                 objSms.setTime(c.getString(c.getColumnIndexOrThrow("date")));
                 if (c.getString(c.getColumnIndexOrThrow("type")).contains("1")) {
                     objSms.setFolderName("inbox");
@@ -565,6 +560,14 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 }
 
                 lstSms.add(0,objSms);
+
+                //Update if read == 0:
+                if (c.getString(c.getColumnIndex("read")).equals("0")) {
+                    ContentValues values = new ContentValues();
+                    values.put(Telephony.Sms.READ, "1");
+                    getContentResolver().update(Telephony.Sms.Inbox.CONTENT_URI, values, Telephony.Sms.Inbox._ID + "=?",
+                            new String[]{c.getString(c.getColumnIndexOrThrow("_id"))});
+                }
             } while (c.moveToNext() && i < displayLimit);
         } else {
             // Inbox Empty
@@ -579,7 +582,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     }
 
     private void initializeSmsList() {
-        Log.i(TAG,"Permissions Granted");
+        //Log.i(TAG,"Permissions Granted");
         listMessages = getAllSms();
         mMessageAdapter = new SmsMessageAdapter(this, R.layout.item_message_user, listMessages, width);
         mMessageListView.setAdapter(mMessageAdapter);

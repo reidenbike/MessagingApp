@@ -8,14 +8,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.graphics.Point;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
-import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -23,19 +20,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -138,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
         }
 
         requestSetDefault();
-        Log.i(TAG,"onResume Called");
+        //Log.i(TAG,"onResume Called");
     }
 
     @Override
@@ -154,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
             //TODO Pretty sure removal by index can't be replaced here, but test this later
             selectionList.remove(selectionList.indexOf(position));
             message.setSelected(false);
-            Log.i(TAG, String.valueOf(selectionList));
+            //Log.i(TAG, String.valueOf(selectionList));
         } else if (selectionList.size() > 0 || longClick) {
             //TODO Add on main back button pushed action to clear selection, else super.
             // Also enable back button on action bar with same action.
@@ -176,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
 
         Collections.sort(selectionList, Collections.<Integer>reverseOrder());
 
-        Log.i(TAG, String.valueOf(selectionList));
+        //Log.i(TAG, String.valueOf(selectionList));
     }
 
     private void deleteMessages() {
@@ -346,7 +339,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
     }
 
     private void initializeConversationList() {
-        Log.i(TAG,"Permissions Granted");
+        //Log.i(TAG,"Permissions Granted");
         listConversations = getActiveContacts();
         mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations, width);
         mConversationListView.setAdapter(mConversationsAdapter);
@@ -424,6 +417,21 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
             } while (c.moveToNext());
         }
 
+        //Update unread notifications icon
+        //TODO Maybe narrow by read status == 0, or start by checking if there are any unread messages, then check for each thread_id.
+        int unreadCount;
+        for (Sms sms:listContact) {
+            unreadCount = 0;
+            c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{sms.getThreadId()}, null);
+            if (c != null && c.moveToFirst()){
+                do {
+                    if (c.getString(c.getColumnIndex("read")).equals("0")) {
+                        unreadCount++;
+                    }
+                } while (c.moveToNext());
+            }
+            sms.setNumberUnread(String.valueOf(unreadCount));
+        }
         if (c != null) {
             c.close();
         }

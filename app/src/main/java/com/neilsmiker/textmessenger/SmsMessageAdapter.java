@@ -3,7 +3,6 @@ package com.neilsmiker.textmessenger;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -11,10 +10,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
-import androidx.constraintlayout.widget.ConstraintLayout;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -23,12 +19,12 @@ import java.util.Objects;
 
 public class SmsMessageAdapter extends ArrayAdapter<Sms> {
 
-    private String TAG = "MESSAGE_ADAPTER";
+    //private String TAG = "MESSAGE_ADAPTER";
     private int width;
     private int timestampWidth = 0;
     private Context context;
     private SimpleDateFormat hourDateFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-    private SimpleDateFormat hour24DateFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    //private SimpleDateFormat hour24DateFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     private SimpleDateFormat dayDateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.getDefault());
 
     SmsMessageAdapter(Context context, int resource, List<Sms> objects, int width) {
@@ -64,10 +60,9 @@ public class SmsMessageAdapter extends ArrayAdapter<Sms> {
             String timestamp = message.getTime();
 
             if (timestamp != null) {
-                long dv = Long.parseLong(timestamp);
-                Date df = new Date(dv);
-                String vv = hourDateFormat.format(df);
-                txtTimestamp.setText(vv);
+                Date date = new Date(Long.parseLong(timestamp));
+                String messageDate = hourDateFormat.format(date);
+                txtTimestamp.setText(messageDate);
             }
 
             boolean isPhoto = false /*message.getPhotoUrl() != null*/;
@@ -86,7 +81,6 @@ public class SmsMessageAdapter extends ArrayAdapter<Sms> {
             //Set the max width of the text bubbles based on the screen width and the size of the timestamp. There's probably
             // a much more efficient way to do this! Checking the timeStampWidth == 0 helps but a more efficient method is required.
             if (timestampWidth == 0) {
-                Log.i(TAG,"Width = " + timestampWidth);
                 ViewTreeObserver vto = txtTimestamp.getViewTreeObserver();
                 vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
