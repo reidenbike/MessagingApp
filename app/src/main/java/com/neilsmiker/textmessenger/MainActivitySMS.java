@@ -69,6 +69,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     private EditText mMessageEditText;
     private Button mSendButton;
 
+    //ListView
     private ListView mMessageListView;
     private SmsMessageAdapter mMessageAdapter;
     private List<Sms> listMessages = new ArrayList<>();
@@ -140,17 +141,41 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {
-                Log.i(TAG,"Scroll state: " + scrollState);
-                if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE
-                        && mMessageListView.getLastVisiblePosition() == 0) {
 
-                    // Now your listview has hit the bottom
+                //TODO This is a very ugly scroll update implementation. It works until we switch to a RecyclerView; no point trying to hack around
+                // the limited ListView options in the meantime.
+
+                if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE && mMessageListView.getFirstVisiblePosition() == 0) {
+                    int position = listMessages.size();
+                    Cursor c;
+                    if (selectedThreadId == null) {
+                        c = getContentResolver().query(Uri.parse("content://sms"), null, "address = ?", new String[]{selectedAddress}, null);
+                    } else {
+                        c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{selectedThreadId}, null);
+                    }
+
+                    boolean allowUpdate = false;
+                    if (c != null && c.moveToFirst()) {
+                        int i = 0;
+                        do {
+                            i++;
+                            if (i >= displayLimit) {
+                                listMessages.add(0, createSmsObject(c));
+                                allowUpdate = true;
+                            }
+                        } while (c.moveToNext() && i < displayLimit+50);
+                    }
+
+                    if (allowUpdate) {
+                        displayLimit += 50;
+                        mMessageAdapter.notifyDataSetChanged();
+                        mMessageListView.smoothScrollToPositionFromTop(listMessages.size() - position,0,0);
+                    }
                 }
             }
 
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-
             }
         });
 
@@ -588,8 +613,9 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             c.moveToNext();
 
             String id = c.getString(c.getColumnIndexOrThrow("_id"));
+            String address = c.getString(c.getColumnIndexOrThrow("address"));
 
-            if (!id.equals(lastID)) {
+            if (!id.equals(lastID) && address.equals(selectedAddress)) {
                 lastID = id;
                 listMessages.add(createSmsObject(c));
                 mMessageAdapter.notifyDataSetChanged();
