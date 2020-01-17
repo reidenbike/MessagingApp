@@ -43,13 +43,11 @@ public class SmsMessageAdapter extends ArrayAdapter<Sms> {
             userName = message.getDisplayName();
             folder = message.getFolderName();
 
-            //if (convertView == null) {
-                if (folder.equals("sent")){
-                    convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.item_message_user, parent, false);
-                } else {
-                    convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.item_message_other, parent, false);
-                }
-            //}
+            if (folder.equals("sent")){
+                convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.item_message_user, parent, false);
+            } else {
+                convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.item_message_other, parent, false);
+            }
 
             ImageView photoImageView = convertView.findViewById(R.id.photoImageView);
             final TextView messageTextView = convertView.findViewById(R.id.messageTextView);
