@@ -72,18 +72,8 @@ public class ConversationsAdapter extends ArrayAdapter<Sms> {
                 txtTimestamp.setText(messageDate);
             }
 
-            boolean isPhoto = false /*message.getPhotoUrl() != null*/;
-            if (isPhoto) {
-                /*messageTextView.setVisibility(View.GONE);
-                photoImageView.setVisibility(View.VISIBLE);
-                Glide.with(photoImageView.getContext())
-                        .load(message.getPhotoUrl())
-                        .into(photoImageView);*/
-            } else {
-                txtLastMessage.setVisibility(View.VISIBLE);
-                txtLastMessage.setText(message.getMsg());
-                txtLastMessage.setMaxWidth(width);
-            }
+            txtLastMessage.setVisibility(View.VISIBLE);
+            txtLastMessage.setText(message.getMsg());
 
             txtProfileName.setText(userName);
 

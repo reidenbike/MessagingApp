@@ -70,7 +70,7 @@
         android:divider="@android:color/transparent"
         android:listSelector="@android:color/transparent"
         android:transcriptMode="alwaysScroll"
-        tools:listitem="@layout/item_message_user"
+        tools:listitem="@layout/item_conversation"
         app:layout_constraintTop_toBottomOf="@id/requestDefaultLayout"
         app:layout_constraintBottom_toBottomOf="parent"/>
 

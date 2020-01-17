@@ -33,30 +33,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements ContentObserverCallbacks {
+public class MainActivity extends AppCompatActivity implements MyContentObserver.ContentObserverCallbacks {
 
     private static final String TAG = "TREX";
 
+    //Context/Lifecycle
     private Context mContext;
     private Activity mActivity;
 
     //Menu:
     Menu optionsMenu;
 
-    private ListView mConversationListView;
-    //private SmsMessageAdapter mMessageAdapter;
-    private ConversationsAdapter mConversationsAdapter;
+    //UI
     private ProgressBar mProgressBar;
 
+    //ListView
+    private ListView mConversationListView;
+    private ConversationsAdapter mConversationsAdapter;
     private List<Sms> listConversations = new ArrayList<>();
-    int width;
     private List<Integer> selectionList = new ArrayList<>();
+    private int displayLimit = 50; //TODO find display limit from user settings?
+    int width;
 
     //SMS
     private static final int PERMISSIONS_REQUEST_CODE = 2020;
-
-    //TODO find display limit from user settings?
-    private int displayLimit = 50;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
         mContext = getApplicationContext();
         mActivity = MainActivity.this;
 
+        //Set up the toolbar
         Toolbar myToolbar = findViewById(R.id.my_toolbar);
         myToolbar.setLogo(R.drawable.icons8_dinosaur_96);
         myToolbar.setTitle(R.string.app_name);
@@ -158,6 +159,8 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
             intent.putExtra("selectedAddress",message.getAddress());
             intent.putExtra("selectedThreadId",message.getThreadId());
             intent.putExtra("selectedName",message.getDisplayName());
+            //To remove transition animation:
+            //intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             this.startActivity(intent);
         }
 
@@ -191,6 +194,8 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
     }
 
 
+    //----------------------------------------------------------------------------------------
+    //Permissions and Set Default Requests
     //----------------------------------------------------------------------------------------
 
     protected boolean checkPermission() {
@@ -338,6 +343,10 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
         }
     }
 
+    //--------------------------------------------------------------------------------
+    //Conversations List and Contacts: Add conversation and contacts methods below
+    //--------------------------------------------------------------------------------
+
     private void initializeConversationList() {
         //Log.i(TAG,"Permissions Granted");
         listConversations = getActiveContacts();
@@ -368,28 +377,6 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
             return contactName;
         }
         return null;
-    }
-
-    //Called from Content Observer
-    @Override
-    public void updateMessageFeed() {
-/*        Uri uriSMSURI = Uri.parse("content://sms");
-
-        Cursor c = getContentResolver().query(uriSMSURI, null, null,
-                null, null);
-        if (c != null) {
-            c.moveToNext();
-
-            String id = c.getString(c.getColumnIndexOrThrow("_id"));
-
-            if (!id.equals(lastID)) {
-
-                lastID = id;
-                listMessages.add(createSmsObject(c));
-                mMessageAdapter.notifyDataSetChanged();
-            }
-            c.close();
-        }*/
     }
 
     //Returns an ArrayList of unique addresses in the sms inbox.
@@ -460,6 +447,28 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
         //}
 
         return objSms;
+    }
+
+    //Called from Content Observer
+    @Override
+    public void updateMessageFeed() {
+/*        Uri uriSMSURI = Uri.parse("content://sms");
+
+        Cursor c = getContentResolver().query(uriSMSURI, null, null,
+                null, null);
+        if (c != null) {
+            c.moveToNext();
+
+            String id = c.getString(c.getColumnIndexOrThrow("_id"));
+
+            if (!id.equals(lastID)) {
+
+                lastID = id;
+                listMessages.add(createSmsObject(c));
+                mMessageAdapter.notifyDataSetChanged();
+            }
+            c.close();
+        }*/
     }
 }
 

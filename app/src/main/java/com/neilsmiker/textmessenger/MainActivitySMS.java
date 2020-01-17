@@ -9,7 +9,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -22,7 +21,6 @@ import android.telephony.SmsManager;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -48,8 +46,9 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public class MainActivitySMS extends AppCompatActivity implements ContentObserverCallbacks {
+public class MainActivitySMS extends AppCompatActivity implements MyContentObserver.ContentObserverCallbacks {
 
     //Context/Lifecycle
     private Context mContext;
@@ -85,8 +84,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     //TODO find display limit from user settings?
     private int displayLimit = 50;
 
-    //Broadcast Receiver
-
     //Content Observer
     private MyContentObserver myContentObserver;
     private String lastID = "null";
@@ -111,10 +108,9 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
         //Set up the toolbar
         Toolbar myToolbar = findViewById(R.id.my_toolbar);
-        //myToolbar.setLogo(R.drawable.icons8_dinosaur_96);
         myToolbar.setTitle((selectedName != null) ? selectedName : getString(R.string.app_name));
         setSupportActionBar(myToolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         // Initialize references to views
@@ -305,6 +301,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
+        //Get the new display width to adjust the max text bubble width in the SmsMessageAdapter
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
@@ -658,39 +655,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     //Contacts: Add Contacts methods below
     //--------------------------------------------------------------------------------
 
-    //Returns an ArrayList of unique addresses in the sms inbox.
-    //TODO Add check for target addresses for cases where user sends message to recipient without any existing messages to display
-    // that conversation thread as well.
-    private List<String> getActiveContacts(){
-        Uri uri = Uri.parse("content://sms");
-        //Using Distinct messes up the order by most recent...
-        Cursor c = getContentResolver().query(uri, new String[]{"thread_id","address"}, null, null, null);
-        List <String> listContact;
-        listContact = new ArrayList<>();
-        listContact.clear();
-
-        List <String> listThread;
-        listThread = new ArrayList<>();
-        listThread.clear();
-
-        if(c != null && c.moveToFirst()) {
-            do {
-                String threadId = c.getString(c.getColumnIndexOrThrow("thread_id"));
-                if (!listThread.contains(threadId)){
-                    listThread.add(threadId);
-                    //listContact.add(getContactName(c.getString(c.getColumnIndexOrThrow("address")),this));
-                    listContact.add(c.getString(c.getColumnIndexOrThrow("address")));
-                }
-            } while (c.moveToNext());
-        }
-
-        if (c != null) {
-            c.close();
-        }
-
-        return listContact;
-    }
-
     public String getContactName(final String phoneNumber, Context context)
     {
         if (checkPermission()) {
@@ -731,28 +695,4 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     //End MMS
     //--------------------------------------------------------------------------------
 
-}
-
-class MyContentObserver extends ContentObserver {
-    private ContentObserverCallbacks contentObserverCallbacks;
-
-    MyContentObserver(Handler h) {
-        super(h);
-    }
-
-    @Override
-    public boolean deliverSelfNotifications() {
-        return true;
-    }
-
-    @Override
-    public void onChange(boolean selfChange) {
-        super.onChange(selfChange);
-
-        contentObserverCallbacks.updateMessageFeed();
-    }
-
-    void setCallbacks(ContentObserverCallbacks callbacks) {
-        contentObserverCallbacks = callbacks;
-    }
 }
