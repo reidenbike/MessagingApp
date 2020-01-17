@@ -370,6 +370,7 @@ public class MainActivity extends AppCompatActivity implements ContentObserverCa
         return null;
     }
 
+    //Called from Content Observer
     @Override
     public void updateMessageFeed() {
 /*        Uri uriSMSURI = Uri.parse("content://sms");

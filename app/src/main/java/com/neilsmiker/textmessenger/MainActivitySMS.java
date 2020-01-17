@@ -22,11 +22,13 @@ import android.telephony.SmsManager;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -135,11 +137,28 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
                 return true;
             }
         });
+        mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                Log.i(TAG,"Scroll state: " + scrollState);
+                if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE
+                        && mMessageListView.getLastVisiblePosition() == 0) {
+
+                    // Now your listview has hit the bottom
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+
+            }
+        });
+
         // Find the display screen width in pixels to properly size the max text bubble widths in the Adapters
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        width = (int) (size.x);
+        width = size.x;
 
         // Initialize progress bar
         mProgressBar.setVisibility(ProgressBar.INVISIBLE);
@@ -518,18 +537,13 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
 
     public List<Sms> getAllSms() {
         List<Sms> lstSms = new ArrayList<>();
-        Sms objSms;
-        /*Uri message = Uri.parse("content://sms/");
-        ContentResolver cr = this.getContentResolver();*/
 
         Cursor c;
         if (selectedThreadId == null) {
-            //c = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
             c = getContentResolver().query(Uri.parse("content://sms"), null, "address = ?", new String[]{selectedAddress}, null);
         } else {
             c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{selectedThreadId}, null);
         }
-        //Cursor c = getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);
 
         if (c != null && c.moveToFirst()) {
 
@@ -542,32 +556,7 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             int i = 0;
             do {
                 i++;
-                objSms = new Sms();
-                objSms.setId(c.getString(c.getColumnIndexOrThrow("_id")));
-                objSms.setAddress(c.getString(c
-                        .getColumnIndexOrThrow("address")));
-                objSms.setMsg(c.getString(c.getColumnIndexOrThrow("body")));
-                //objSms.setReadState(c.getString(c.getColumnIndex("read")));
-                objSms.setTime(c.getString(c.getColumnIndexOrThrow("date")));
-                if (c.getString(c.getColumnIndexOrThrow("type")).contains("1")) {
-                    objSms.setFolderName("inbox");
-                } else {
-                    objSms.setFolderName("sent");
-                }
-
-                if (objSms.getFolderName().equals("inbox")){
-                    objSms.setDisplayName(getContactName(objSms.getAddress(),mContext));
-                }
-
-                lstSms.add(0,objSms);
-
-                //Update if read == 0:
-                if (c.getString(c.getColumnIndex("read")).equals("0")) {
-                    ContentValues values = new ContentValues();
-                    values.put(Telephony.Sms.READ, "1");
-                    getContentResolver().update(Telephony.Sms.Inbox.CONTENT_URI, values, Telephony.Sms.Inbox._ID + "=?",
-                            new String[]{c.getString(c.getColumnIndexOrThrow("_id"))});
-                }
+                lstSms.add(0,createSmsObject(c));
             } while (c.moveToNext() && i < displayLimit);
         } else {
             // Inbox Empty
@@ -588,11 +577,12 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
         mMessageListView.setAdapter(mMessageAdapter);
     }
 
+    //Called from Content Observer
     @Override
     public void updateMessageFeed() {
-        Uri uriSMSURI = Uri.parse("content://sms");
+        Uri uriSMS = Uri.parse("content://sms");
 
-        Cursor c = getContentResolver().query(uriSMSURI, null, null,
+        Cursor c = getContentResolver().query(uriSMS, null, null,
                 null, null);
         if (c != null) {
             c.moveToNext();
@@ -600,29 +590,42 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
             String id = c.getString(c.getColumnIndexOrThrow("_id"));
 
             if (!id.equals(lastID)) {
-                Sms objSms = new Sms();
-                objSms.setId(c.getString(c.getColumnIndexOrThrow("_id")));
-                objSms.setAddress(c.getString(c
-                        .getColumnIndexOrThrow("address")));
-                objSms.setMsg(c.getString(c.getColumnIndexOrThrow("body")));
-                objSms.setReadState(c.getString(c.getColumnIndex("read")));
-                objSms.setTime(c.getString(c.getColumnIndexOrThrow("date")));
-                if (c.getString(c.getColumnIndexOrThrow("type")).contains("1")) {
-                    objSms.setFolderName("inbox");
-                } else {
-                    objSms.setFolderName("sent");
-                }
-
-                if (objSms.getFolderName().equals("inbox")) {
-                    objSms.setDisplayName(getContactName(objSms.getAddress(), mContext));
-                }
-
                 lastID = id;
-                listMessages.add(objSms);
+                listMessages.add(createSmsObject(c));
                 mMessageAdapter.notifyDataSetChanged();
             }
             c.close();
         }
+    }
+
+    public Sms createSmsObject(Cursor c){
+        Sms objSms = new Sms();
+        objSms.setId(c.getString(c.getColumnIndexOrThrow("_id")));
+        objSms.setThreadId(c.getString(c.getColumnIndexOrThrow("thread_id")));
+        objSms.setAddress(c.getString(c.getColumnIndexOrThrow("address")));
+        objSms.setMsg(c.getString(c.getColumnIndexOrThrow("body")));
+        objSms.setTime(c.getString(c.getColumnIndexOrThrow("date")));
+        if (c.getString(c.getColumnIndexOrThrow("type")).contains("1")) {
+            objSms.setFolderName("inbox");
+        } else {
+            objSms.setFolderName("sent");
+        }
+
+        if (objSms.getFolderName().equals("inbox")){
+            objSms.setDisplayName(getContactName(objSms.getAddress(),mContext));
+        }
+
+        //Update if read == 0:
+        if (c.getString(c.getColumnIndex("read")).equals("0")) {
+            ContentValues values = new ContentValues();
+            values.put(Telephony.Sms.READ, "1");
+            getContentResolver().update(Telephony.Sms.Inbox.CONTENT_URI, values, Telephony.Sms.Inbox._ID + "=?",
+                    new String[]{c.getString(c.getColumnIndexOrThrow("_id"))});
+        }
+        //Set SMS object read state to "1" since this is always true at this point
+        objSms.setReadState("1");
+
+        return objSms;
     }
 
     //--------------------------------------------------------------------------------
@@ -701,8 +704,6 @@ public class MainActivitySMS extends AppCompatActivity implements ContentObserve
     //--------------------------------------------------------------------------------
     //End MMS
     //--------------------------------------------------------------------------------
-
-
 
 }
 
