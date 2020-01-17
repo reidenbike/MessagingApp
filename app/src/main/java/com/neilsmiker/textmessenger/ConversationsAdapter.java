@@ -27,16 +27,14 @@ import java.util.Locale;
 public class ConversationsAdapter extends ArrayAdapter<Sms> {
 
     //private String TAG = "CONVERSATION_ADAPTER";
-    private int width;
     private Context context;
     private SimpleDateFormat hourDateFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
     //private SimpleDateFormat hour24DateFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     private SimpleDateFormat dayDateFormat = new SimpleDateFormat("M/d/yy", Locale.getDefault());
     private String currentDate;
 
-    ConversationsAdapter(Context context, int resource, List<Sms> objects, int width) {
+    ConversationsAdapter(Context context, int resource, List<Sms> objects) {
         super(context, resource, objects);
-        this.width = width;
         this.context = context;
         currentDate = dayDateFormat.format(new Date(System.currentTimeMillis()));
     }

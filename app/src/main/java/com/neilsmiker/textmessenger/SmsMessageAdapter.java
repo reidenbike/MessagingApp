@@ -65,18 +65,18 @@ public class SmsMessageAdapter extends ArrayAdapter<Sms> {
                 txtTimestamp.setText(messageDate);
             }
 
-            boolean isPhoto = false /*message.getPhotoUrl() != null*/;
+            /*boolean isPhoto = false *//*message.getPhotoUrl() != null*//*;
             if (isPhoto) {
-                /*messageTextView.setVisibility(View.GONE);
+                *//*messageTextView.setVisibility(View.GONE);
                 photoImageView.setVisibility(View.VISIBLE);
                 Glide.with(photoImageView.getContext())
                         .load(message.getPhotoUrl())
-                        .into(photoImageView);*/
-            } else {
+                        .into(photoImageView);*//*
+            } else {*/
                 messageTextView.setVisibility(View.VISIBLE);
                 photoImageView.setVisibility(View.GONE);
                 messageTextView.setText(message.getMsg());
-            }
+            //}
 
             //Set the max width of the text bubbles based on the screen width and the size of the timestamp. There's probably
             // a much more efficient way to do this! Checking the timeStampWidth == 0 helps but a more efficient method is required.

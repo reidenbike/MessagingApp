@@ -1,10 +1,5 @@
 package com.neilsmiker.textmessenger;
 
-import android.content.Context;
-import android.database.Cursor;
-import android.net.Uri;
-import android.provider.ContactsContract;
-
 public class Sms{
     private String _id;
     private String _address;

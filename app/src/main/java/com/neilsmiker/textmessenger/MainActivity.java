@@ -8,12 +8,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -53,7 +51,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     private List<Sms> listConversations = new ArrayList<>();
     private List<Integer> selectionList = new ArrayList<>();
     private int displayLimit = 50; //TODO find display limit from user settings?
-    int width;
 
     //SMS
     private static final int PERMISSIONS_REQUEST_CODE = 2020;
@@ -92,12 +89,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
                 return true;
             }
         });
-
-        // Initialize message ListView and its adapter
-        Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        width = (int) (.8 * size.x);
 
         // Initialize progress bar
         mProgressBar.setVisibility(ProgressBar.INVISIBLE);
@@ -142,7 +133,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
     private void selectListItem(int position, View view, boolean longClick) {
         Sms message = listConversations.get(position);
-        boolean isUser = message.getFolderName().equals("sent");
         //TODO highlight selected conversations
         if (selectionList.contains(position)) {
             //TODO Pretty sure removal by index can't be replaced here, but test this later
@@ -177,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
     private void deleteMessages() {
 
-        int lastViewedPosition = mConversationListView.getFirstVisiblePosition();
+        //int lastViewedPosition = mConversationListView.getFirstVisiblePosition();
 
         //TODO delete all messages in the selected conversation
 
@@ -350,7 +340,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     private void initializeConversationList() {
         //Log.i(TAG,"Permissions Granted");
         listConversations = getActiveContacts();
-        mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations, width);
+        mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations);
         mConversationListView.setAdapter(mConversationsAdapter);
     }
 

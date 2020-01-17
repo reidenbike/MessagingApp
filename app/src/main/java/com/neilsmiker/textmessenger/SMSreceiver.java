@@ -18,7 +18,6 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
-import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -60,7 +59,6 @@ public class SMSreceiver extends BroadcastReceiver {
                     msgs[i] = SmsMessage.createFromPdu((byte[]) pdus[i]);
                 }
                 // Build the message to show.
-                long timestamp = msgs[i].getTimestampMillis();
                 String address = msgs[i].getOriginatingAddress();
                 String displayName = getContactName(address, context);
                 String message = msgs[i].getMessageBody();

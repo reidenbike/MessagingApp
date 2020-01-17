@@ -8,4 +8,6 @@
     <string name="profile_picture">Profile Picture</string>
     <string name="channel_name">textosaurusrex</string>
     <string name="channel_description">SMS notification channel for Textosaurus Rex</string>
+    <string name="set_as_default">Set as default SMS application?</string>
+    <string name="set_default">SET DEFAULT</string>
 </resources>
