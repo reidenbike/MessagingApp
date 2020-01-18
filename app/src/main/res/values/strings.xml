@@ -10,4 +10,6 @@
     <string name="channel_description">SMS notification channel for Textosaurus Rex</string>
     <string name="set_as_default">Set as default SMS application?</string>
     <string name="set_default">SET DEFAULT</string>
+    <string name="new_message">New Message</string>
+    <string name="recipient">Recipient</string>
 </resources>
