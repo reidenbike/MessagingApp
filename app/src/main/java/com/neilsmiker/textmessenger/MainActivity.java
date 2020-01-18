@@ -3,17 +3,20 @@ package com.neilsmiker.textmessenger;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -23,6 +26,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -149,17 +153,36 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
     private void selectListItem(int position, View view, boolean longClick) {
         Sms message = listConversations.get(position);
+
+        ConstraintLayout conversationLayout = view.findViewById(R.id.conversationLayout);
+        TextView txtLastMessage = view.findViewById(R.id.txtLastMessage);
+        TextView txtProfileName = view.findViewById(R.id.profileName);
+        TextView txtTimestamp = view.findViewById(R.id.txtTimestamp);
+
+
+
         //TODO highlight selected conversations
         if (selectionList.contains(position)) {
             //TODO Pretty sure removal by index can't be replaced here, but test this later
             selectionList.remove(selectionList.indexOf(position));
             message.setSelected(false);
-            //Log.i(TAG, String.valueOf(selectionList));
+
+            //Set item to not selected
+            conversationLayout.setBackground(getDrawable(R.drawable.conversation_bubble));
+            txtProfileName.setTextColor(Color.parseColor("#000000"));
+            txtLastMessage.setTextColor(Color.parseColor("#000000"));
+            txtTimestamp.setTextColor(Color.parseColor("#808080"));
         } else if (selectionList.size() > 0 || longClick) {
             //TODO Add on main back button pushed action to clear selection, else super.
             // Also enable back button on action bar with same action.
             selectionList.add(position);
             message.setSelected(true);
+
+            //Set item to selected
+            conversationLayout.setBackground(getDrawable(R.drawable.text_bubble_user_selected));
+            txtProfileName.setTextColor(getResources().getColor(R.color.colorTitle));
+            txtLastMessage.setTextColor(getResources().getColor(R.color.colorTitle));
+            txtTimestamp.setTextColor(getResources().getColor(R.color.colorTitle));
         } else {
             Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
             intent.putExtra("selectedAddress",message.getAddress());
@@ -183,12 +206,22 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
     private void deleteMessages() {
 
-        //int lastViewedPosition = mConversationListView.getFirstVisiblePosition();
+        int lastViewedPosition = mConversationListView.getFirstVisiblePosition();
 
-        //TODO delete all messages in the selected conversation
+        ContentResolver contentResolver = getContentResolver();
+        for(int i : selectionList) {
+            Cursor c;
+            c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{listConversations.get(i).getThreadId()}, null);
 
-        /*for(int i : selectionList) {
-            getContentResolver().delete(Uri.parse("content://sms/" + listConversations.get(i).getId()), null, null);
+            if (c != null && c.moveToFirst()) {
+                do {
+                    contentResolver.delete(Uri.parse("content://sms/" + c.getString(c.getColumnIndexOrThrow("_id"))), null, null);
+                } while (c.moveToNext());
+            }
+
+            if (c != null) {
+                c.close();
+            }
             listConversations.remove(i);
         }
 
@@ -196,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
 
         mConversationsAdapter.notifyDataSetChanged();
-        mConversationListView.smoothScrollToPosition(lastViewedPosition);*/
+        mConversationListView.smoothScrollToPosition(lastViewedPosition);
     }
 
 

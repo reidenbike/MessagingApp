@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.provider.ContactsContract;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -82,21 +83,23 @@ public class ConversationsAdapter extends ArrayAdapter<Sms> {
                 txtUnreadBadge.setText(message.getNumberUnread());
             }
 
-            selectListItem(message,txtProfileName,txtLastMessage,conversationLayout);
+            selectListItem(message,txtProfileName,txtLastMessage,txtTimestamp,conversationLayout);
         }
 
         return convertView;
     }
 
-    private void selectListItem(Sms message, TextView name, TextView lastMessage, ConstraintLayout conversationBubble){
+    private void selectListItem(Sms message, TextView name, TextView lastMessage, TextView timestamp, ConstraintLayout conversationBubble){
         if (!message.isSelected()){
             conversationBubble.setBackground(context.getDrawable(R.drawable.conversation_bubble));
             name.setTextColor(Color.parseColor("#000000"));
             lastMessage.setTextColor(Color.parseColor("#000000"));
+            timestamp.setTextColor(Color.parseColor("#808080"));
         } else {
             conversationBubble.setBackground(context.getDrawable(R.drawable.text_bubble_user_selected));
             name.setTextColor(context.getResources().getColor(R.color.colorTitle));
             lastMessage.setTextColor(context.getResources().getColor(R.color.colorTitle));
+            timestamp.setTextColor(context.getResources().getColor(R.color.colorTitle));
         }
     }
 
