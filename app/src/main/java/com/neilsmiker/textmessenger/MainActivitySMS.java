@@ -754,7 +754,10 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     //MMS: Add MMS methods below
     //--------------------------------------------------------------------------------
 
-
+    private void sendMMS(String cellNumber)
+    {
+        
+    }
 
     //--------------------------------------------------------------------------------
     //End MMS
