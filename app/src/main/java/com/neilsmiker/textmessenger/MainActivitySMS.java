@@ -26,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -40,9 +41,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NavUtils;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -67,6 +72,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
     private Button mSendButton;
+    private ConstraintLayout inputLayout;
 
     //ListView
     private ListView mMessageListView;
@@ -80,6 +86,12 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private String selectedAddress;
     private String selectedThreadId;
     private String selectedName;
+    private boolean newMessage = false;
+
+    //Create new message
+    private ConstraintLayout recipientLayout;
+    private EditText recipientEditText;
+    private Button addRecipientButton;
 
     //TODO find display limit from user settings?
     private int displayLimit = 50;
@@ -104,10 +116,11 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             selectedAddress = extras.getString("selectedAddress");
             selectedThreadId = extras.getString("selectedThreadId");
             selectedName = extras.getString("selectedName");
+            newMessage = extras.getBoolean("newMessage");
         }
 
         //Set up the toolbar
-        Toolbar myToolbar = findViewById(R.id.my_toolbar);
+        final Toolbar myToolbar = findViewById(R.id.my_toolbar);
         myToolbar.setTitle((selectedName != null) ? selectedName : getString(R.string.app_name));
         setSupportActionBar(myToolbar);
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
@@ -118,6 +131,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         mPhotoPickerButton = findViewById(R.id.photoPickerButton);
         mMessageEditText = findViewById(R.id.messageEditText);
         mSendButton = findViewById(R.id.sendButton);
+        inputLayout = findViewById(R.id.inputLayout);
 
         //ListView Initialization
         mMessageListView = findViewById(R.id.messageListView);
@@ -231,6 +245,56 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             }
         });
 
+        //Set up new message button and layouts
+        if (newMessage) {
+            recipientLayout = findViewById(R.id.recipientLayout);
+            recipientLayout.setVisibility(View.VISIBLE);
+            inputLayout.setVisibility(View.GONE);
+            mMessageListView.setVisibility(View.GONE);
+            myToolbar.setTitle("New Message");
+
+            addRecipientButton = findViewById(R.id.addRecipientButton);
+            addRecipientButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    selectedAddress = recipientEditText.getText().toString();
+                    selectedName = getContactName(selectedAddress, mContext);
+                    myToolbar.setTitle(selectedName);
+                    initializeSmsList();
+
+                    mMessageListView.setVisibility(View.VISIBLE);
+                    inputLayout.setVisibility(View.VISIBLE);
+                    recipientLayout.setVisibility(View.GONE);
+
+                    //Set focus to Message EditText and show the keyboard if not already active
+                    mMessageEditText.requestFocus();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.showSoftInput(mMessageEditText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
+
+            recipientEditText = findViewById(R.id.recipientEditText);
+            // Enable Send button when there's text to send
+            recipientEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                    if (charSequence.toString().trim().length() > 0) {
+                        addRecipientButton.setEnabled(true);
+                    } else {
+                        addRecipientButton.setEnabled(false);
+                    }
+                }
+
+                @Override
+                public void afterTextChanged(Editable editable) {
+                }
+            });
+        }
+
         //Content Observer Initialization:
         Handler handler = new Handler();
         myContentObserver = new MyContentObserver(handler);
@@ -272,7 +336,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         super.onResume();
 
         //SMS Initialization:
-        if (checkPermission()){
+        if (checkPermission() && selectedAddress != null){
 
             initializeSmsList();
 

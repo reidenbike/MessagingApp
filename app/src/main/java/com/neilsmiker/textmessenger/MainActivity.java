@@ -23,7 +23,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -32,6 +31,9 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,10 +60,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     private static final int PERMISSIONS_REQUEST_CODE = 2020;
 
     //Create new message
-    private ImageButton btnNewMessage;
-    private ConstraintLayout recipientLayout;
-    private EditText recipientEditText;
-    private Button addRecipientButton;
+    private FloatingActionButton btnNewMessage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,51 +95,16 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
             }
         });
 
-        //Set up new message button and layouts
-        recipientLayout = findViewById(R.id.recipientLayout);
-
-        addRecipientButton = findViewById(R.id.addRecipientButton);
-        addRecipientButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                recipientLayout.setVisibility(View.GONE);
-                String address = recipientEditText.getText().toString();
-                Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
-                intent.putExtra("selectedAddress",address);
-                //intent.putExtra("selectedThreadId",message.getThreadId());
-                intent.putExtra("selectedName",getContactName(address,mContext));
-                //To remove transition animation:
-                //intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                startActivity(intent);
-            }
-        });
-
+        //Set up new message button
         btnNewMessage = findViewById(R.id.btnNewMessage);
         btnNewMessage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                recipientLayout.setVisibility(View.VISIBLE);
-            }
-        });
-
-        recipientEditText = findViewById(R.id.recipientEditText);
-        // Enable Send button when there's text to send
-        recipientEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                if (charSequence.toString().trim().length() > 0) {
-                    addRecipientButton.setEnabled(true);
-                } else {
-                    addRecipientButton.setEnabled(false);
-                }
-            }
-
-            @Override
-            public void afterTextChanged(Editable editable) {
+                Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
+                intent.putExtra("newMessage",true);
+                //To remove transition animation:
+                //intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
             }
         });
     }
