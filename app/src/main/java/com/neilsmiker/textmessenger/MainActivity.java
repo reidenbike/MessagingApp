@@ -423,8 +423,11 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     private List<Sms> getActiveContacts(){
         Uri uri = Uri.parse("content://sms");
         //Using Distinct messes up the order by most recent...
-        //Cursor c = getContentResolver().query(uri, new String[]{"thread_id","address"}, null, null, null);
-        Cursor c = getContentResolver().query(uri, null, null, null, null);
+
+        String [] columns = new String[]{"DISTINCT thread_id","_id","address","body","read","date","type"};
+
+        Cursor c = getContentResolver().query(uri, columns, "thread_id IS NOT NULL) GROUP BY (thread_id", null, null);
+        //Cursor c = getContentResolver().query(uri, null, null, null, null);
         List <Sms> listContact;
         listContact = new ArrayList<>();
         listContact.clear();
@@ -434,13 +437,16 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         listThread.clear();
 
         if(c != null && c.moveToFirst()) {
+            int i = 0;
             do {
+                i++;
                 String threadId = c.getString(c.getColumnIndexOrThrow("thread_id"));
+                Log.i(TAG,threadId);
                 if (!listThread.contains(threadId)){
                     listThread.add(threadId);
                     listContact.add(createSmsObject(c));
                 }
-            } while (c.moveToNext());
+            } while (c.moveToNext() && i < displayLimit);
         }
 
         //Update unread notifications icon
