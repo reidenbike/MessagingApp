@@ -12,12 +12,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -25,6 +29,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
@@ -42,9 +47,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     //Menu:
     Menu optionsMenu;
 
-    //UI
-    private ProgressBar mProgressBar;
-
     //ListView
     private ListView mConversationListView;
     private ConversationsAdapter mConversationsAdapter;
@@ -52,8 +54,14 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     private List<Integer> selectionList = new ArrayList<>();
     private int displayLimit = 50; //TODO find display limit from user settings?
 
-    //SMS
+    //Permissions
     private static final int PERMISSIONS_REQUEST_CODE = 2020;
+
+    //Create new message
+    private ImageButton btnNewMessage;
+    private ConstraintLayout recipientLayout;
+    private EditText recipientEditText;
+    private Button addRecipientButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,11 +78,9 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         myToolbar.setTitle(R.string.app_name);
         setSupportActionBar(myToolbar);
 
-        // Initialize references to views
-        mProgressBar = findViewById(R.id.progressBar);
-
         //ListView Initialization
         mConversationListView = findViewById(R.id.conversationListView);
+
         mConversationListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -90,8 +96,53 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
             }
         });
 
-        // Initialize progress bar
-        mProgressBar.setVisibility(ProgressBar.INVISIBLE);
+        //Set up new message button and layouts
+        recipientLayout = findViewById(R.id.recipientLayout);
+
+        addRecipientButton = findViewById(R.id.addRecipientButton);
+        addRecipientButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                recipientLayout.setVisibility(View.GONE);
+                String address = recipientEditText.getText().toString();
+                Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
+                intent.putExtra("selectedAddress",address);
+                //intent.putExtra("selectedThreadId",message.getThreadId());
+                intent.putExtra("selectedName",getContactName(address,mContext));
+                //To remove transition animation:
+                //intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
+            }
+        });
+
+        btnNewMessage = findViewById(R.id.btnNewMessage);
+        btnNewMessage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                recipientLayout.setVisibility(View.VISIBLE);
+            }
+        });
+
+        recipientEditText = findViewById(R.id.recipientEditText);
+        // Enable Send button when there's text to send
+        recipientEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (charSequence.toString().trim().length() > 0) {
+                    addRecipientButton.setEnabled(true);
+                } else {
+                    addRecipientButton.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+        });
     }
 
     @Override
@@ -128,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
     @Override
     protected void onPause() {
+        //TODO Content observer unregister
         super.onPause();
     }
 
@@ -338,7 +390,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     //--------------------------------------------------------------------------------
 
     private void initializeConversationList() {
-        //Log.i(TAG,"Permissions Granted");
         listConversations = getActiveContacts();
         mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations);
         mConversationListView.setAdapter(mConversationsAdapter);
