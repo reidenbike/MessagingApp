@@ -2,7 +2,9 @@ package com.neilsmiker.textmessenger;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,6 +15,7 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract;
@@ -53,6 +56,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Random;
+
 
 public class MainActivitySMS extends AppCompatActivity implements MyContentObserver.ContentObserverCallbacks {
 
@@ -754,9 +765,57 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     //MMS: Add MMS methods below
     //--------------------------------------------------------------------------------
 
-    private void sendMMS(String cellNumber)
+    private void sendMMS(final String recipients, final String subject, final String text)
     {
-        
+        //Log.d(TAG, "Sending");
+        mSendStatusView.setText(getResources().getString(R.string.mms_status_sending));
+        mSendButton.setEnabled(false);
+        final String fileName = "send." + String.valueOf(Math.abs(mRandom.nextLong())) + ".dat";
+        mSendFile = new File(getCacheDir(), fileName);
+
+        // Making RPC call in non-UI thread
+        AsyncTask.THREAD_POOL_EXECUTOR.execute(new Runnable() {
+            @Override
+            public void run() {
+                final byte[] pdu = buildPdu(MmsMessagingDemo.this, recipients, subject, text);
+                Uri writerUri = (new Uri.Builder())
+                        .authority("com.example.android.apis.os.MmsFileProvider")
+                        .path(fileName)
+                        .scheme(ContentResolver.SCHEME_CONTENT)
+                        .build();
+                final PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                        MmsMessagingDemo.this, 0, new Intent(ACTION_MMS_SENT), 0);
+                FileOutputStream writer = null;
+                Uri contentUri = null;
+                try {
+                    writer = new FileOutputStream(mSendFile);
+                    writer.write(pdu);
+                    contentUri = writerUri;
+                } catch (final IOException e) {
+                    Log.e(TAG, "Error writing send file", e);
+                } finally {
+                    if (writer != null) {
+                        try {
+                            writer.close();
+                        } catch (IOException e) {
+                        }
+                    }
+                }
+
+                if (contentUri != null) {
+                    SmsManager.getDefault().sendMultimediaMessage(getApplicationContext(),
+                            contentUri, null/*locationUrl*/, null/*configOverrides*/,
+                            pendingIntent);
+                } else {
+                    Log.e(TAG, "Error writing sending Mms");
+                    try {
+                        pendingIntent.send(SmsManager.MMS_ERROR_IO_ERROR);
+                    } catch (PendingIntent.CanceledException ex) {
+                        Log.e(TAG, "Mms pending intent cancelled?", ex);
+                    }
+                }
+            }
+        });
     }
 
     //--------------------------------------------------------------------------------
