@@ -15,15 +15,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -33,6 +29,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +38,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements MyContentObserver.ContentObserverCallbacks {
 
-    private static final String TAG = "TREX";
+    //private static final String TAG = "TREX";
 
     //Context/Lifecycle
     private Context mContext;
@@ -49,24 +47,24 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     //Menu:
     Menu optionsMenu;
 
-    //ListView
-    private ListView mConversationListView;
-    private ConversationsAdapter mConversationsAdapter;
+    //Lists
     private List<Sms> listConversations = new ArrayList<>();
     private List<Integer> selectionList = new ArrayList<>();
-    private int displayLimitInterval = 20; //TODO find display limit from user settings?
+
+    //RecyclerView
+    private ConversationRecyclerAdapter recyclerAdapter;
+    private boolean allowContentObserver = true;
+    private int totalToDelete = 0;
+    private int deleted = 0;
+    private int displayLimitInterval = 20;
     private int displayLimit;
     private boolean allowLazyLoad = true;
 
     //Permissions
     private static final int PERMISSIONS_REQUEST_CODE = 2020;
 
-    //Create new message
-    private FloatingActionButton btnNewMessage;
-
     //Content Observer
     private MyContentObserver myContentObserver;
-    private String lastID = "null";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,56 +81,47 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         myToolbar.setTitle(R.string.app_name);
         setSupportActionBar(myToolbar);
 
-        //ListView Initialization
+        //RecyclerView initialization
         displayLimit = displayLimitInterval;
 
-        mConversationListView = findViewById(R.id.conversationListView);
+        RecyclerView recyclerView = findViewById(R.id.conversationRecyclerView);
 
-        mConversationListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        recyclerView.setHasFixedSize(true);
+
+        recyclerAdapter = new ConversationRecyclerAdapter(listConversations,mContext);
+        recyclerView.setAdapter(recyclerAdapter);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(linearLayoutManager);
+
+        ItemClickSupport.addTo(recyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                selectListItem(position, view, false);
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+                selectListItem(position, v, false);
             }
-        });
+        }).setOnItemLongClickListener(new ItemClickSupport.OnItemLongClickListener() {
+                    @Override
+                    public boolean onItemLongClicked(RecyclerView recyclerView, int position, View v) {
+                        selectListItem(position, v, true);
+                        return true;
+                    }
+                });
 
-        mConversationListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        EndlessRecyclerViewScrollListener scrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                selectListItem(position, view, true);
-                return true;
-            }
-        });
-
-        mConversationListView.setOnScrollListener(new AbsListView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-                //TODO This is a very ugly scroll update implementation. It works until we switch to a RecyclerView; no point trying to hack around
-                // the limited ListView options in the meantime.
-                if (allowLazyLoad && scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE
-                        && mConversationListView.getLastVisiblePosition() == listConversations.size()-1) {
-                    int firstPosition = mConversationListView.getFirstVisiblePosition();
-                    int lastPosition = mConversationListView.getLastVisiblePosition();
-                    int position = lastPosition - (lastPosition - firstPosition) + 1;
-
-                    getActiveContacts(displayLimit+1,displayLimit + displayLimitInterval);
-
+            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                if (allowLazyLoad) {
+                    getActiveContacts(displayLimit + 1, displayLimit + displayLimitInterval);
                     displayLimit += displayLimitInterval;
-                    mConversationsAdapter.notifyDataSetChanged();
-                    mConversationListView.smoothScrollToPositionFromTop(position,0,0);
                 }
             }
-
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-            }
-        });
+        };
+        recyclerView.addOnScrollListener(scrollListener);
 
         //Set up new message button
-        btnNewMessage = findViewById(R.id.btnNewMessage);
+        FloatingActionButton btnNewMessage = findViewById(R.id.btnNewMessage);
         btnNewMessage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                displayLimit = displayLimitInterval;
                 Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
                 intent.putExtra("newMessage",true);
                 //To remove transition animation:
@@ -224,7 +213,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
             txtLastMessage.setTextColor(getResources().getColor(R.color.colorTitle));
             txtTimestamp.setTextColor(getResources().getColor(R.color.colorTitle));
         } else {
-            displayLimit = displayLimitInterval;
             Intent intent = new Intent(MainActivity.this,MainActivitySMS.class);
             intent.putExtra("selectedAddress",message.getAddress());
             intent.putExtra("selectedThreadId",message.getThreadId());
@@ -244,15 +232,15 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     }
 
     private void deleteMessages() {
-
-        int lastViewedPosition = mConversationListView.getFirstVisiblePosition();
-
+        allowContentObserver = false;
         ContentResolver contentResolver = getContentResolver();
         for(int i : selectionList) {
             Cursor c;
             c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{listConversations.get(i).getThreadId()}, null);
 
             if (c != null && c.moveToFirst()) {
+                totalToDelete = c.getCount();
+                deleted = 0;
                 do {
                     contentResolver.delete(Uri.parse("content://sms/" + c.getString(c.getColumnIndexOrThrow("_id"))), null, null);
                 } while (c.moveToNext());
@@ -261,14 +249,13 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
             if (c != null) {
                 c.close();
             }
+
             listConversations.remove(i);
+            recyclerAdapter.notifyItemRemoved(i);
         }
 
         selectionList.clear();
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
-
-        mConversationsAdapter.notifyDataSetChanged();
-        mConversationListView.smoothScrollToPosition(lastViewedPosition);
     }
 
 
@@ -428,8 +415,10 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     private void initializeConversationList() {
         listConversations.clear();
         getActiveContacts(0,displayLimit);
-        mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations);
-        mConversationListView.setAdapter(mConversationsAdapter);
+
+        recyclerAdapter.notifyDataSetChanged();
+        /*mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations);
+        mConversationListView.setAdapter(mConversationsAdapter);*/
     }
 
     public String getContactName(final String phoneNumber, Context context)
@@ -464,11 +453,13 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
         Cursor c = getContentResolver().query(uri, columns, "thread_id IS NOT NULL) GROUP BY (thread_id", null, "max(date) desc");
 
+        List<Sms> listNewConversations = new ArrayList<>();
+
         if(c != null && c.moveToFirst()) {
             int i = 0;
             do {
                 if (i >= startDisplayLimit) {
-                    listConversations.add(createSmsObject(c));
+                    listNewConversations.add(createSmsObject(c));
                 }
             } while (c.moveToNext() && i++ < endDisplayLimit);
             allowLazyLoad = c.moveToNext();
@@ -476,7 +467,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
         //Update unread notifications icon
         int unreadCount;
-        for (Sms sms:listConversations) {
+        for (Sms sms:listNewConversations) {
             unreadCount = 0;
             c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ? and read = ?", new String[]{sms.getThreadId(),"0"}, null);
             if (c != null && c.moveToFirst()){
@@ -487,6 +478,9 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         if (c != null) {
             c.close();
         }
+        int positionStart = listConversations.size();
+        listConversations.addAll(listNewConversations);
+        recyclerAdapter.notifyItemRangeInserted(positionStart,listNewConversations.size());
     }
 
     public Sms createSmsObject(Cursor c){
@@ -514,10 +508,14 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     //Called from Content Observer
     @Override
     public void updateMessageFeed() {
-        listConversations.clear();
-        getActiveContacts(0,displayLimit);
-        mConversationsAdapter.notifyDataSetChanged();
-        mConversationListView.smoothScrollToPositionFromTop(0,0,0);
+        if (allowContentObserver){
+            //Add RecyclerView Update to changed items
+        } else {
+            deleted++;
+            if (deleted >= totalToDelete){
+                allowContentObserver = true;
+            }
+        }
     }
 }
 
