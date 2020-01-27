@@ -116,17 +116,14 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <ListView
-        android:id="@+id/messageListView"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/conversationRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:stackFromBottom="true"
-        android:divider="@android:color/transparent"
-        android:listSelector="@android:color/transparent"
-        android:transcriptMode="alwaysScroll"
-        tools:listitem="@layout/item_message_user"
+        tools:listitem="@layout/item_message_user_default"
+        android:scrollbars="vertical"
         app:layout_constraintTop_toBottomOf="@id/recipientLayout"
-        app:layout_constraintBottom_toTopOf="@id/inputLayout"/>
+        app:layout_constraintBottom_toTopOf="@id/inputLayout" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/inputLayout"

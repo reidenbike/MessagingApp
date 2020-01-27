@@ -12,7 +12,8 @@
         android:adjustViewBounds="true"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        android:visibility="gone"/>
 
     <LinearLayout
         android:id="@+id/textBubble"
@@ -69,10 +70,10 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="@dimen/text_horizontal_margin"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        tools:text="Name"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/textBubble"
-        app:layout_constraintBottom_toTopOf="@id/dayTimestampLayout"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:text="Name" />
 
     <TextView
         android:id="@+id/txtTimestamp"
@@ -86,30 +87,5 @@
         app:layout_constraintEnd_toStartOf="@id/textBubble"
         app:layout_constraintBottom_toBottomOf="@id/textBubble"
         android:visibility="visible"/>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/dayTimestampLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@id/nameTextView"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <TextView
-            android:id="@+id/dayTimestamp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:background="@color/colorAccent"
-            android:gravity="center"
-            android:padding="5dp"
-            android:text="Sunday, January 12, 2020"
-            android:textColor="#ffffff"
-            android:textSize="16dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

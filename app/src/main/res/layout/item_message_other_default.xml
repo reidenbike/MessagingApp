@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <ImageView
+        android:id="@+id/photoImageView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:visibility="gone"/>
+
+    <LinearLayout
+        android:id="@+id/textBubble"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="right"
+        android:background="@drawable/text_bubble_other"
+        android:elevation="2dp"
+        android:layout_marginBottom="@dimen/text_vertical_margin"
+        android:layout_marginTop="@dimen/text_vertical_margin"
+        android:layout_marginLeft="@dimen/text_horizontal_margin"
+        app:layout_constraintTop_toBottomOf="@id/photoImageView"
+        app:layout_constraintBottom_toTopOf="@id/nameTextView"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/messageTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:maxWidth="200dp"
+            tools:text="Message test ets ou k bnk jn n ljnl jn jklbnkl bjk jbk bjjk bk bnkj njkjn jkl"/>
+
+    </LinearLayout>
+
+<!--    <TextView
+        android:id="@+id/messageTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:maxWidth="350dp"
+        android:background="@drawable/text_bubble_other"
+        android:elevation="2dp"
+        tools:text="Message test ets ou k bnk jn n ljnl jn jklbnkl bjk jbk bjjk bk bnkj njkjn jkl"
+        android:layout_marginBottom="@dimen/text_vertical_margin"
+        android:layout_marginTop="@dimen/text_vertical_margin"
+        android:layout_marginLeft="@dimen/text_horizontal_margin"
+        app:layout_constraintTop_toBottomOf="@id/photoImageView"
+        app:layout_constraintBottom_toTopOf="@id/nameTextView"
+        app:layout_constraintStart_toStartOf="parent"/>-->
+
+    <TextView
+        android:id="@+id/nameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/text_horizontal_margin"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/textBubble"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:text="Name" />
+
+    <TextView
+        android:id="@+id/txtTimestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="5dp"
+        android:paddingEnd="8dp"
+        android:gravity="left"
+        android:text="12:22 PM"
+        android:textSize="14dp"
+        app:layout_constraintStart_toEndOf="@id/textBubble"
+        app:layout_constraintBottom_toBottomOf="@id/textBubble"
+        android:visibility="visible"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

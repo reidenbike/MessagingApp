@@ -21,20 +21,16 @@ import android.telephony.SmsManager;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,9 +42,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NavUtils;
 import androidx.core.content.ContextCompat;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -75,9 +70,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private Button mSendButton;
     private ConstraintLayout inputLayout;
 
-    //ListView
-    private ListView mMessageListView;
-    private SmsMessageAdapter mMessageAdapter;
+    //Lists
     private List<Sms> listMessages = new ArrayList<>();
     int width;
     private List<Integer> selectionList = new ArrayList<>();
@@ -94,8 +87,33 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private EditText recipientEditText;
     private Button addRecipientButton;
 
-    //TODO find display limit from user settings?
-    private int displayLimit = 50;
+    //RecyclerView
+    private RecyclerView recyclerView;
+    private LinearLayoutManager linearLayoutManager;
+    private SmsRecyclerAdapter recyclerAdapter;
+    private boolean allowContentObserver = true;
+    private int totalToDelete = 0;
+    private int deleted = 0;
+    private int displayLimitInterval = 50;
+    private int displayLimit;
+    private boolean allowLazyLoad = true;
+    private boolean allowRefocusScroll = false;
+    int currentScrollPosition = 0;
+    int currentScrollOffset = 0;
+
+    //Set the RecyclerView scroll position when starting the activity (to 0) or when opening/closing the soft keyboard (to previous position)
+    //TODO Still has issues returning to correct scroll position when large messages have offset
+    Handler handler = new Handler();
+    Runnable r = new Runnable() {
+        public void run() {
+            if (allowRefocusScroll) {
+                linearLayoutManager.scrollToPositionWithOffset(currentScrollPosition, currentScrollOffset);
+            } else {
+                linearLayoutManager.scrollToPosition(0);
+                allowRefocusScroll = true;
+            }
+        }
+    };
 
     //Content Observer
     private MyContentObserver myContentObserver;
@@ -134,67 +152,66 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         mSendButton = findViewById(R.id.sendButton);
         inputLayout = findViewById(R.id.inputLayout);
 
-        //ListView Initialization
-        mMessageListView = findViewById(R.id.messageListView);
-        mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                selectListItem(position, view, false);
-            }
-        });
-        mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                selectListItem(position, view, true);
-                return true;
-            }
-        });
-        mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-
-                //TODO This is a very ugly scroll update implementation. It works until we switch to a RecyclerView; no point trying to hack around
-                // the limited ListView options in the meantime.
-
-                if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE && mMessageListView.getFirstVisiblePosition() == 0) {
-                    int position = listMessages.size();
-                    Cursor c;
-                    if (selectedThreadId == null) {
-                        c = getContentResolver().query(Uri.parse("content://sms"), null, "address = ?", new String[]{selectedAddress}, null);
-                    } else {
-                        c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{selectedThreadId}, null);
-                    }
-
-                    boolean allowUpdate = false;
-                    if (c != null && c.moveToFirst()) {
-                        int i = 0;
-                        do {
-                            i++;
-                            if (i >= displayLimit) {
-                                listMessages.add(0, createSmsObject(c));
-                                allowUpdate = true;
-                            }
-                        } while (c.moveToNext() && i < displayLimit+50);
-                    }
-
-                    if (allowUpdate) {
-                        displayLimit += 50;
-                        mMessageAdapter.notifyDataSetChanged();
-                        mMessageListView.smoothScrollToPositionFromTop(listMessages.size() - position,0,0);
-                    }
-                }
-            }
-
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-            }
-        });
-
         // Find the display screen width in pixels to properly size the max text bubble widths in the Adapters
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
         width = size.x;
+
+        //RecyclerView initialization
+        displayLimit = displayLimitInterval;
+
+        recyclerView = findViewById(R.id.conversationRecyclerView);
+        recyclerView.setHasFixedSize(true);
+
+        recyclerAdapter = new SmsRecyclerAdapter(listMessages,mContext,width);
+        recyclerView.setAdapter(recyclerAdapter);
+
+        linearLayoutManager = new LinearLayoutManager(this);
+        linearLayoutManager.setReverseLayout(true);
+        recyclerView.setLayoutManager(linearLayoutManager);
+
+        ItemClickSupport.addTo(recyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
+            @Override
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+                selectListItem(position, v, false);
+            }
+        }).setOnItemLongClickListener(new ItemClickSupport.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClicked(RecyclerView recyclerView, int position, View v) {
+                selectListItem(position, v, true);
+                return true;
+            }
+        });
+
+        EndlessRecyclerViewScrollListener scrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+            @Override
+            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                if (allowLazyLoad) {
+                    getAllSms(displayLimit + 1, displayLimit + displayLimitInterval);
+                    displayLimit += displayLimitInterval;
+                }
+            }
+
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy != 0) {
+                    //Get the current position and offset for the first visible item. Use these ints to set the scroll position
+                    // when opening/closing the soft keyboard.
+                    currentScrollPosition = linearLayoutManager.findFirstVisibleItemPosition();
+                    View child = linearLayoutManager.getChildAt(0);
+                    if (child != null) {
+                        currentScrollOffset = recyclerView.getBottom() - recyclerView.getTop() - child.getBottom();
+                    }
+                    //Log.i(TAG,"Current position: " + currentScrollPosition + ", offset: " + currentScrollOffset);
+                } else {
+                    //Called when soft keyboard opens/closes. Set the scroll position via the Runnable
+                    handler.post(r);
+                }
+            }
+        };
+        recyclerView.addOnScrollListener(scrollListener);
 
         // Initialize progress bar
         mProgressBar.setVisibility(ProgressBar.INVISIBLE);
@@ -203,7 +220,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         mPhotoPickerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // TODO: Fire an intent to show an image picker
+                //Intent to show an image picker
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("image/jpeg");
                 intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
@@ -251,7 +268,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             recipientLayout = findViewById(R.id.recipientLayout);
             recipientLayout.setVisibility(View.VISIBLE);
             inputLayout.setVisibility(View.GONE);
-            mMessageListView.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.GONE);
             myToolbar.setTitle("New Message");
 
             addRecipientButton = findViewById(R.id.addRecipientButton);
@@ -263,7 +280,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     myToolbar.setTitle(selectedName);
                     initializeSmsList();
 
-                    mMessageListView.setVisibility(View.VISIBLE);
+                    recyclerView.setVisibility(View.VISIBLE);
                     inputLayout.setVisibility(View.VISIBLE);
                     recipientLayout.setVisibility(View.GONE);
 
@@ -366,14 +383,13 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
-        //Get the new display width to adjust the max text bubble width in the SmsMessageAdapter
+        //Get the new display width to adjust the max text bubble width in the SmsRecyclerAdapter
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
         int width = (size.x);
 
-        mMessageAdapter = new SmsMessageAdapter(this, R.layout.item_message_user, listMessages, width);
-        mMessageListView.setAdapter(mMessageAdapter);
+        recyclerAdapter.setMaxWidth(width);
     }
 
     private void selectListItem(int position, View view, boolean longClick) {
@@ -419,20 +435,19 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
     private void deleteMessages() {
 
-        int lastViewedPosition = mMessageListView.getFirstVisiblePosition();
-
         //TODO add error handling
+        allowContentObserver = false;
+        totalToDelete = selectionList.size();
+        deleted = 0;
 
         for(int i : selectionList) {
             getContentResolver().delete(Uri.parse("content://sms/" + listMessages.get(i).getId()), null, null);
             listMessages.remove(i);
+            recyclerAdapter.notifyItemRemoved(i);
         }
 
         selectionList.clear();
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
-
-        mMessageAdapter.notifyDataSetChanged();
-        mMessageListView.smoothScrollToPosition(lastViewedPosition);
     }
 
 
@@ -622,7 +637,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         }
     }
 
-    public List<Sms> getAllSms() {
+    public void getAllSms(int startDisplayLimit, int endDisplayLimit) {
         List<Sms> lstSms = new ArrayList<>();
 
         Cursor c;
@@ -632,57 +647,64 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             c = getContentResolver().query(Uri.parse("content://sms"), null, "thread_id = ?", new String[]{selectedThreadId}, null);
         }
 
-        if (c != null && c.moveToFirst()) {
-
-            /*Log.i(TAG, Arrays.toString(c.getColumnNames()));*/
-            /*for (String column:c.getColumnNames()){
-                String item = c.getString(c.getColumnIndexOrThrow(column));
-                Log.i(TAG, column + ": " + item);
-            }*/
-
+        if(c != null && c.moveToFirst()) {
             int i = 0;
             do {
-                i++;
-                lstSms.add(0,createSmsObject(c));
-            } while (c.moveToNext() && i < displayLimit);
-        } else {
-            // Inbox Empty
-            //TODO Update UI to read Empty/nothing to see here etc.
+                if (i >= startDisplayLimit) {
+                    lstSms.add(createSmsObject(c));
+                }
+            } while (c.moveToNext() && i++ < endDisplayLimit);
+            allowLazyLoad = c.moveToNext();
         }
 
         if (c != null) {
             c.close();
         }
 
-        return lstSms;
+        int positionStart = listMessages.size();
+        listMessages.addAll(lstSms);
+        recyclerAdapter.notifyItemRangeInserted(positionStart,lstSms.size());
     }
 
     private void initializeSmsList() {
         //Log.i(TAG,"Permissions Granted");
-        listMessages = getAllSms();
-        mMessageAdapter = new SmsMessageAdapter(this, R.layout.item_message_user, listMessages, width);
-        mMessageListView.setAdapter(mMessageAdapter);
+        listMessages.clear();
+        getAllSms(0,displayLimit);
+
+        recyclerAdapter.notifyDataSetChanged();
     }
 
     //Called from Content Observer
     @Override
     public void updateMessageFeed() {
-        Uri uriSMS = Uri.parse("content://sms");
+        if (allowContentObserver){
+            Uri uriSMS = Uri.parse("content://sms");
 
-        Cursor c = getContentResolver().query(uriSMS, null, null,
-                null, null);
-        if (c != null) {
-            c.moveToNext();
+            Cursor c = getContentResolver().query(uriSMS, null, null,
+                    null, null);
+            if (c != null) {
+                c.moveToNext();
 
-            String id = c.getString(c.getColumnIndexOrThrow("_id"));
-            String address = c.getString(c.getColumnIndexOrThrow("address"));
+                String id = c.getString(c.getColumnIndexOrThrow("_id"));
+                String address = c.getString(c.getColumnIndexOrThrow("address"));
 
-            if (!id.equals(lastID) && address.equals(selectedAddress)) {
-                lastID = id;
-                listMessages.add(createSmsObject(c));
-                mMessageAdapter.notifyDataSetChanged();
+                if (!id.equals(lastID) && address.equals(selectedAddress)) {
+                    lastID = id;
+                    //TODO Move autoscroll to public. If false, display bottom notification that can be tapped to scroll to bottom
+                    boolean autoscroll = linearLayoutManager.findFirstVisibleItemPosition() == 0;
+                    listMessages.add(0,createSmsObject(c));
+                    recyclerAdapter.notifyItemInserted(0);
+                    if (autoscroll) {
+                        recyclerView.smoothScrollToPosition(0);
+                    }
+                }
+                c.close();
             }
-            c.close();
+        } else {
+            deleted++;
+            if (deleted >= totalToDelete){
+                allowContentObserver = true;
+            }
         }
     }
 

@@ -187,9 +187,4 @@ public class ConversationRecyclerAdapter extends RecyclerView.Adapter<Conversati
             timestamp.setTextColor(context.getResources().getColor(R.color.colorTitle));
         }
     }
-
-    void deleteItem(int index) {
-        listConversations.remove(index);
-        notifyItemRemoved(index);
-    }
 }

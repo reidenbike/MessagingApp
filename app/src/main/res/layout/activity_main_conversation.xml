@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".MainActivitySMS">
+    tools:context=".MainActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appbar"
@@ -62,29 +62,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-<!--    <ListView
-        android:id="@+id/conversationListView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:divider="@android:color/transparent"
-        android:listSelector="@android:color/transparent"
-        android:transcriptMode="alwaysScroll"
-        tools:listitem="@layout/item_conversation"
-        app:layout_constraintTop_toBottomOf="@id/requestDefaultLayout"
-        app:layout_constraintBottom_toBottomOf="parent"/>-->
-
-<!--    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/conversationRecyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:divider="@android:color/transparent"
-        android:listSelector="@android:color/transparent"
-        android:transcriptMode="alwaysScroll"
-        android:scrollbars="vertical"
-        tools:listitem="@layout/item_conversation"
-        app:layout_constraintTop_toBottomOf="@id/requestDefaultLayout"
-        app:layout_constraintBottom_toBottomOf="parent"/>-->
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/conversationRecyclerView"

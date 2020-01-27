@@ -417,8 +417,6 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         getActiveContacts(0,displayLimit);
 
         recyclerAdapter.notifyDataSetChanged();
-        /*mConversationsAdapter = new ConversationsAdapter(this, R.layout.item_message_user, listConversations);
-        mConversationListView.setAdapter(mConversationsAdapter);*/
     }
 
     public String getContactName(final String phoneNumber, Context context)
