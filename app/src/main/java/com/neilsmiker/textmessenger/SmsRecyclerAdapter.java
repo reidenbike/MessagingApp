@@ -68,10 +68,6 @@ public class SmsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         switch (viewType){
-            case VIEW_TYPE_USER_DEFAULT:
-                View userMsgView = LayoutInflater.from(parent.getContext())
-                        .inflate(R.layout.item_message_user_default, parent, false);
-                return new UserDefaultHolder(userMsgView);
             case VIEW_TYPE_OTHER_DEFAULT:
                 View otherMsgView = LayoutInflater.from(parent.getContext())
                         .inflate(R.layout.item_message_other_default, parent, false);
@@ -85,6 +81,7 @@ public class SmsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                         .inflate(R.layout.item_message_other_daybreak, parent, false);
                 return new OtherDaybreakHolder(otherDayMsgView);
 
+            //VIEW_TYPE_USER_DEFAULT
             default:
                 View defaultView = LayoutInflater.from(parent.getContext())
                         .inflate(R.layout.item_message_user_default, parent, false);
