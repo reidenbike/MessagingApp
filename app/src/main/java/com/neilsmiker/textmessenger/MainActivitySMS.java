@@ -112,6 +112,15 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private MyContentObserver myContentObserver;
     private String lastID = "null";
 
+    //MMS
+    private EditText mRecipientsInput;
+    private EditText mSubjectInput;
+    private EditText mTextInput;
+    private TextView mSendStatusView;
+    private File mSendFile;
+    private File mDownloadFile;
+    private Random mRandom = new Random();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
