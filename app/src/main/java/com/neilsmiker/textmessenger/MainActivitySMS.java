@@ -42,6 +42,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NavUtils;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
@@ -119,6 +121,9 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private MyContentObserver myContentObserver;
     private String lastID = "null";
 
+    //Contacts Fragment
+    LinearLayout fragmentContainer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -151,6 +156,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         mMessageEditText = findViewById(R.id.messageEditText);
         mSendButton = findViewById(R.id.sendButton);
         inputLayout = findViewById(R.id.inputLayout);
+        fragmentContainer = findViewById(R.id.fragment_container);
 
         // Find the display screen width in pixels to properly size the max text bubble widths in the Adapters
         Display display = getWindowManager().getDefaultDisplay();
@@ -283,6 +289,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     recyclerView.setVisibility(View.VISIBLE);
                     inputLayout.setVisibility(View.VISIBLE);
                     recipientLayout.setVisibility(View.GONE);
+                    fragmentContainer.setVisibility(View.GONE);
 
                     //Set focus to Message EditText and show the keyboard if not already active
                     mMessageEditText.requestFocus();
@@ -311,6 +318,15 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                 public void afterTextChanged(Editable editable) {
                 }
             });
+
+            //Initialize Contacts Fragment:
+            fragmentContainer.setVisibility(View.VISIBLE);
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+            ContactsFragment fragment = new ContactsFragment();
+            fragmentTransaction.add(R.id.fragment_container, fragment);
+            fragmentTransaction.commit();
         }
 
         //Content Observer Initialization:

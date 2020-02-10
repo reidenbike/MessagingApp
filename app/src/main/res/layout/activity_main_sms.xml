@@ -116,6 +116,17 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <LinearLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        tools:listitem="@layout/item_message_user_default"
+        android:scrollbars="vertical"
+        app:layout_constraintTop_toBottomOf="@id/recipientLayout"
+        app:layout_constraintBottom_toTopOf="@id/inputLayout"
+        android:orientation="vertical"
+        android:visibility="gone"/>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/conversationRecyclerView"
         android:layout_width="match_parent"
