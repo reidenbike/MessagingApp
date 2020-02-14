@@ -1,5 +1,6 @@
 package com.neilsmiker.textmessenger;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
@@ -13,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.loader.app.LoaderManager;
 import androidx.loader.content.CursorLoader;
 import androidx.loader.content.Loader;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
@@ -22,16 +24,21 @@ import java.util.Objects;
 public class ContactsFragment extends Fragment  implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private RecyclerView recyclerView;
+    private ContactsRecyclerAdapter recyclerAdapter;
     private ContentResolver cr;
+    private Activity activity;
 
     // Called just before the Fragment displays its UI
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // Always call the super method first
         super.onCreate(savedInstanceState);
+
+        activity = getActivity();
+
         // Initializes the loader
         LoaderManager.getInstance(this).initLoader(0, null, this);
-        cr = Objects.requireNonNull(getActivity()).getContentResolver();
+        cr = activity.getContentResolver();
     }
 
     @Override
@@ -49,18 +56,29 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
 
         recyclerView = Objects.requireNonNull(getActivity()).findViewById(R.id.contact_recyclerview);
         recyclerView.setHasFixedSize(true);
+        DividerItemDecoration itemDecor = new DividerItemDecoration(getActivity(),DividerItemDecoration.VERTICAL);
+        recyclerView.addItemDecoration(itemDecor);
+
+        ItemClickSupport.addTo(recyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
+            @Override
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+                if (activity instanceof MainActivitySMS){
+                    ((MainActivitySMS) activity).insertRecipientNumber(recyclerAdapter.getContactNumber(position));
+                }
+            }
+        })/*.setOnItemLongClickListener(new ItemClickSupport.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClicked(RecyclerView recyclerView, int position, View v) {
+                selectListItem(position, v, true);
+                return true;
+            }
+        })*/;
     }
 
     @NonNull
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         // This is called when a new Loader needs to be created.
-
-        /*if (id == CONTACTS_LOADER_ID) {
-            return contactsLoader();
-        }
-        return null;*/
-
         return contactsLoader();
     }
 
@@ -68,11 +86,12 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
     public void onLoadFinished(@NonNull Loader<Cursor> loader, Cursor cursor) {
         //The framework will take care of closing the
         // old cursor once we return.
-        List<Sms> contacts = contactsFromCursor(cursor);
+        List<Contact> contacts = contactsFromCursor(cursor);
+        //Collections.sort(contacts,Contact.ContactComparator);
 
         // Define global mutable variables
         // Define a RecyclerView object
-        ConversationRecyclerAdapter recyclerAdapter = new ConversationRecyclerAdapter(contacts, getActivity());
+        recyclerAdapter = new ContactsRecyclerAdapter(contacts, getActivity());
         recyclerView.setAdapter(recyclerAdapter);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(linearLayoutManager);
@@ -96,7 +115,7 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
 
         String selection = null;                                 //Selection criteria
         String[] selectionArgs = {};                             //Selection criteria
-        String sortOrder = null;                                 //The sort order for the returned rows
+        String sortOrder = ContactsContract.Contacts.DISPLAY_NAME + " ASC"; //The sort order for the returned rows
 
         return new CursorLoader(
                 Objects.requireNonNull(getActivity()).getApplicationContext(),
@@ -107,14 +126,13 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                 sortOrder);
     }
 
-    private List<Sms> contactsFromCursor(Cursor cursor) {
-        List<Sms> contacts = new ArrayList<>();
+    private List<Contact> contactsFromCursor(Cursor cursor) {
+        List<Contact> contacts = new ArrayList<>();
 
         if (cursor.getCount() > 0) {
             cursor.moveToFirst();
-
             do {
-                contacts.add(createSmsObject(cursor));
+                contacts.add(createContactObject(cursor));
             } while (cursor.moveToNext());
         }
 
@@ -122,56 +140,50 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
     }
 
     //Stand-in until Contacts Object is complete:
-    private Sms createSmsObject(Cursor c){
-        Sms objSms = new Sms();
+    private Contact createContactObject(Cursor c){
+        Contact objContact = new Contact();
         String id = c.getString(c.getColumnIndex(ContactsContract.Contacts._ID));
-        objSms.setId(id);
-        objSms.setThreadId("1");
-        String number = String.valueOf(getPhoneNumbers(id));
-        String email = String.valueOf(getEmailAddresses(id));
-        objSms.setAddress(number);
-        objSms.setMsg(number + email);
-        objSms.setTime("1581220574000");
-        objSms.setFolderName("inbox");
-        objSms.setDisplayName(c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)));
+        objContact.setId(id);
+        objContact.setPhone(getPhoneNumbers(id));
+        objContact.setEmail(getEmailAddresses(id));
+        objContact.setName(c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)));
 
-        //Set SMS object read state to "1" since this is always true at this point
-        objSms.setReadState("1");
-        objSms.setNumberUnread("0");
-
-        return objSms;
+        return objContact;
     }
 
-    private List<String> getPhoneNumbers(String id){
+    private List<LabelData> getPhoneNumbers(String id){
         Cursor cursor = cr.query(
                 ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                 null,
                 ContactsContract.CommonDataKinds.Phone.CONTACT_ID +" = ?",
                 new String[]{id}, null);
-        List<String> phoneNumbers = new ArrayList<>();
+        List<LabelData> phoneNumbers = new ArrayList<>();
         if (cursor != null && cursor.moveToFirst()) {
             do {
+                LabelData objNumber = new LabelData();
                 int phoneType = cursor.getInt(cursor.getColumnIndex(
                         ContactsContract.CommonDataKinds.Phone.TYPE));
                 String phoneNumber = cursor.getString(cursor.getColumnIndex(
-                        ContactsContract.CommonDataKinds.Phone.NUMBER));
+                        ContactsContract.CommonDataKinds.Phone.NUMBER)).replaceAll("[^0-9]", "");
+                objNumber.setValue(phoneNumber);
                 switch (phoneType) {
                     case ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE:
-                        phoneNumbers.add("Mobile: " + phoneNumber);
+                        objNumber.setLabel("Mobile");
                         break;
                     case ContactsContract.CommonDataKinds.Phone.TYPE_HOME:
-                        phoneNumbers.add("Home: " + phoneNumber);
+                        objNumber.setLabel("Home");
                         break;
                     case ContactsContract.CommonDataKinds.Phone.TYPE_WORK:
-                        phoneNumbers.add("Work: " + phoneNumber);
+                        objNumber.setLabel("Work");
                         break;
                     case ContactsContract.CommonDataKinds.Phone.TYPE_OTHER:
-                        phoneNumbers.add("Other: " + phoneNumber);
+                        objNumber.setLabel("Other");
                         break;
                     default:
-                        phoneNumbers.add("Unknown: " + phoneNumber);
+                        objNumber.setLabel("Unknown");
                         break;
                 }
+                phoneNumbers.add(objNumber);
             } while (cursor.moveToNext());
         }
         if (cursor != null) {
@@ -180,39 +192,39 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         return phoneNumbers;
     }
 
-    private List<String> getEmailAddresses(String id){
+    private List<LabelData> getEmailAddresses(String id){
         Cursor cursor = cr.query(
                 ContactsContract.CommonDataKinds.Email.CONTENT_URI,
                 null,
                 ContactsContract.CommonDataKinds.Email.CONTACT_ID +" = ?",
                 new String[]{id}, null);
-        List<String> emails = new ArrayList<>();
+        List<LabelData> emails = new ArrayList<>();
         if (cursor != null && cursor.moveToFirst()) {
             do {
+                LabelData objEmail = new LabelData();
                 int emailType = cursor.getInt(cursor.getColumnIndex(
                         ContactsContract.CommonDataKinds.Email.TYPE));
                 String email = cursor.getString(cursor.getColumnIndex(
                         ContactsContract.CommonDataKinds.Email.ADDRESS));
+                objEmail.setValue(email);
                 switch (emailType) {
                     case ContactsContract.CommonDataKinds.Email.TYPE_CUSTOM:
-                        emails.add("Custom: " + email);
+                        objEmail.setLabel("Custom");
                         break;
                     case ContactsContract.CommonDataKinds.Email.TYPE_MOBILE:
-                        emails.add("Mobile: " + email);
+                        objEmail.setLabel("Mobile");
                         break;
                     case ContactsContract.CommonDataKinds.Email.TYPE_HOME:
-                        emails.add("Home: " + email);
+                        objEmail.setLabel("Home");
                         break;
                     case ContactsContract.CommonDataKinds.Email.TYPE_WORK:
-                        emails.add("Work: " + email);
+                        objEmail.setLabel("Work");
                         break;
-                    /*case ContactsContract.CommonDataKinds.Email.TYPE_OTHER:
-                        emails.add("Other: " + email);
-                        break;*/
                     default:
-                        emails.add("Other: " + email);
+                        objEmail.setLabel("Other");
                         break;
                 }
+                emails.add(objEmail);
             } while (cursor.moveToNext());
         }
         if (cursor != null) {

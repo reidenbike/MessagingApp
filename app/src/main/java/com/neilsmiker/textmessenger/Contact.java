@@ -1,87 +1,49 @@
 package com.neilsmiker.textmessenger;
 
+import java.util.List;
+
 public class Contact {
     private String _id;
-    private String _address;
-    private String _msg;
-    private String _readState; //"0" for have not read sms and "1" for have read sms
-    private String _time;
-    private String _folderName;
-    private String _threadId;
-
-    private String _numberUnread;
-
-    //Package-private variables
-    private boolean selected = false;
-    private String displayName = null;
+    private String _name;
+    private List<LabelData> _phone;
+    private List<LabelData> _email;
 
     public String getId(){
         return _id;
     }
-    public String getAddress(){
-        return _address;
+    public String getName(){
+        return _name;
     }
-    public String getMsg(){
-        return _msg;
+    List<LabelData> getPhone(){
+        return _phone;
     }
-    public String getReadState(){
-        return _readState;
+    List<LabelData> getEmail(){
+        return _email;
     }
-    public String getTime(){
-        return _time;
-    }
-    public String getFolderName(){
-        return _folderName;
-    }
-    public String getThreadId(){
-        return _threadId;
-    }
-    public String getNumberUnread(){
-        return _numberUnread;
-    }
-
 
     public void setId(String id){
         _id = id;
     }
-    public void setAddress(String address){
-        _address = address;
+    public void setName(String name){
+        _name = name;
     }
-    public void setMsg(String msg){
-        _msg = msg;
+    void setPhone(List<LabelData> phone){
+        _phone = phone;
     }
-    public void setReadState(String readState){
-        _readState = readState;
-    }
-    public void setTime(String time){
-        _time = time;
-    }
-    public void setFolderName(String folderName){
-        _folderName = folderName;
-    }
-    public void setThreadId(String threadId){
-        _threadId = threadId;
-    }
-    public void setNumberUnread(String numberUnread){
-        _numberUnread = numberUnread;
+    void setEmail(List<LabelData> email){
+        _email = email;
     }
 
-    //Package-private
-    void setSelected(boolean selected){
-        this.selected = selected;
-    }
-    boolean isSelected(){
-        return selected;
-    }
+    /*static Comparator<Contact> ContactComparator = new Comparator<Contact>() {
 
-    void setDisplayName(String displayName){
-        this.displayName = displayName;
-    }
-    String getDisplayName(){
-        if (displayName != null) {
-            return displayName;
-        } else {
-            return _address;
-        }
-    }
+        public int compare(Contact c1, Contact c2) {
+            String Contact1 = c1.getName().toUpperCase();
+            String Contact2 = c2.getName().toUpperCase();
+
+            //ascending order
+            return Contact1.compareTo(Contact2);
+
+            //descending order
+            //return Contact2.compareTo(Contact1);
+        }};*/
 }

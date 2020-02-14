@@ -783,6 +783,14 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         return null;
     }
 
+    public void insertRecipientNumber(String number){
+        String currentText = recipientEditText.getText().toString();
+        if (!currentText.equals("")){
+            currentText = currentText + ",";
+        }
+        recipientEditText.setText(currentText + number);
+    }
+
     //--------------------------------------------------------------------------------
     //End Contacts
     //--------------------------------------------------------------------------------
