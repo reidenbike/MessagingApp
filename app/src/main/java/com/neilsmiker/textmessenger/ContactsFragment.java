@@ -63,7 +63,7 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
             @Override
             public void onItemClicked(RecyclerView recyclerView, int position, View v) {
                 if (activity instanceof MainActivitySMS){
-                    ((MainActivitySMS) activity).insertRecipientNumber(recyclerAdapter.getContactNumber(position));
+                    ((MainActivitySMS) activity).insertRecipientNumber(recyclerAdapter.getContactNumber(position),recyclerAdapter.getContactName(position));
                 }
             }
         })/*.setOnItemLongClickListener(new ItemClickSupport.OnItemLongClickListener() {

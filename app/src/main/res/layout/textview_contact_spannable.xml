@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:background="@drawable/text_spannable_selector"
+    android:textSize="18dp"
+    android:textColor="#000000"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp"
+    android:paddingStart="13dp"
+    android:paddingEnd="6dp"
+    android:maxWidth="160dp"
+    android:ellipsize="end"
+    android:lines="1"
+    android:elevation="2dp"
+    android:gravity="center"/>

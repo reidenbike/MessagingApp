@@ -62,12 +62,23 @@
             app:layout_constraintBottom_toBottomOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <TextView
+        android:id="@+id/txtRecipients"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/requestDefaultLayout"
+        android:padding="10dp"
+        android:visibility="gone"
+        android:maxHeight="300dp"
+        android:textSize="20dp"
+        android:textColor="#000000"/>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/recipientLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/requestDefaultLayout"
+        app:layout_constraintTop_toBottomOf="@id/txtRecipients"
         android:visibility="gone">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -97,6 +108,7 @@
                 android:paddingBottom="5dp"
                 android:inputType="textCapSentences|textMultiLine"
                 android:background="@android:color/transparent"
+                android:textSize="18dp"
                 android:hint="@string/recipient"
                 tools:ignore="Autofill,LabelFor" />
 

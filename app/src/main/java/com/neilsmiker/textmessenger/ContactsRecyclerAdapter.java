@@ -168,4 +168,8 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
             return "";
         }
     }
+
+    String getContactName(int position){
+        return listContacts.get(position).getName();
+    }
 }

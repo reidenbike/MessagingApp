@@ -12,4 +12,6 @@
     <string name="set_default">SET DEFAULT</string>
     <string name="new_message">New Message</string>
     <string name="recipient">Recipient</string>
+    <string name="recipient_title">%1$s and 1 other</string>
+    <string name="recipients_title">%1$s and %2$d others</string>
 </resources>

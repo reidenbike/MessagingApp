@@ -10,8 +10,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,7 +23,14 @@ import android.provider.Telephony;
 import android.telephony.SmsManager;
 import android.text.Editable;
 import android.text.InputFilter;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ImageSpan;
+import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -66,6 +76,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     Menu optionsMenu;
 
     //UI
+    private Toolbar myToolbar;
     private ProgressBar mProgressBar;
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
@@ -87,7 +98,10 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     //Create new message
     private ConstraintLayout recipientLayout;
     private EditText recipientEditText;
+    private TextView txtRecipients;
     private Button addRecipientButton;
+    private SpannableStringBuilder recipientSpannableBuilder = new SpannableStringBuilder();
+    private List<LabelData> recipientsList = new ArrayList<>();
 
     //RecyclerView
     private RecyclerView recyclerView;
@@ -144,7 +158,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         }
 
         //Set up the toolbar
-        final Toolbar myToolbar = findViewById(R.id.my_toolbar);
+        myToolbar = findViewById(R.id.my_toolbar);
         myToolbar.setTitle((selectedName != null) ? selectedName : getString(R.string.app_name));
         setSupportActionBar(myToolbar);
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
@@ -156,6 +170,8 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         mMessageEditText = findViewById(R.id.messageEditText);
         mSendButton = findViewById(R.id.sendButton);
         inputLayout = findViewById(R.id.inputLayout);
+        recipientLayout = findViewById(R.id.recipientLayout);
+
         fragmentContainer = findViewById(R.id.fragment_container);
 
         // Find the display screen width in pixels to properly size the max text bubble widths in the Adapters
@@ -271,11 +287,10 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
         //Set up new message button and layouts
         if (newMessage) {
-            recipientLayout = findViewById(R.id.recipientLayout);
             recipientLayout.setVisibility(View.VISIBLE);
             inputLayout.setVisibility(View.GONE);
             recyclerView.setVisibility(View.GONE);
-            myToolbar.setTitle("New Message");
+            myToolbar.setTitle("New conversation");
 
             addRecipientButton = findViewById(R.id.addRecipientButton);
             addRecipientButton.setOnClickListener(new View.OnClickListener() {
@@ -283,7 +298,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                 public void onClick(View v) {
                     selectedAddress = recipientEditText.getText().toString();
                     selectedName = getContactName(selectedAddress, mContext);
-                    myToolbar.setTitle(selectedName);
+                    //myToolbar.setTitle(selectedName);
                     initializeSmsList();
 
                     recyclerView.setVisibility(View.VISIBLE);
@@ -295,6 +310,14 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     mMessageEditText.requestFocus();
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.showSoftInput(mMessageEditText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
+
+            txtRecipients = findViewById(R.id.txtRecipients);
+            txtRecipients.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    displayRecipientView(true);
                 }
             });
 
@@ -316,6 +339,24 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
                 @Override
                 public void afterTextChanged(Editable editable) {
+                }
+            });
+
+            recipientEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View view, boolean hasFocus) {
+                    if (hasFocus) {
+                        displayRecipientView(true);
+                    }
+                }
+            });
+
+            mMessageEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View view, boolean hasFocus) {
+                    if (hasFocus) {
+                        displayRecipientView(false);
+                    }
                 }
             });
 
@@ -382,7 +423,8 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             }
         }
 
-        requestSetDefault();
+        //TODO Temporarily removing call to request set default for testing purposes
+        //requestSetDefault();
     }
 
     @Override
@@ -783,12 +825,190 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         return null;
     }
 
-    public void insertRecipientNumber(String number){
-        String currentText = recipientEditText.getText().toString();
-        if (!currentText.equals("")){
-            currentText = currentText + ",";
+    public void insertRecipientNumber(String number, String name){
+        final LabelData newContact = new LabelData();
+        newContact.setLabel(number);
+        newContact.setValue(name);
+        recipientsList.add(newContact);
+        //TODO Finish the List method for add and removing contacts from recipient list.
+
+        /*ClickableSpan clickSpan = new ClickableSpan() {
+
+            @Override
+            public void onClick(@NonNull View view) {
+                //recipientSpannableBuilder.removeSpan(this);
+                recipientsList.remove(newContact);
+
+                SpannableStringBuilder sb = new SpannableStringBuilder();
+                for (LabelData contact : recipientsList){
+                    TextView tv = createContactTextView(contact.getValue());
+                    BitmapDrawable bd = (BitmapDrawable) convertViewToDrawable(tv);
+                    bd.setBounds(0, 0, bd.getIntrinsicWidth(),bd.getIntrinsicHeight());
+
+                    String phoneNumber = contact.getLabel() + ",";
+                    sb.append(phoneNumber);
+                    sb.setSpan(new ImageSpan(bd), sb.length()-(phoneNumber.length()), sb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    //sb.setSpan(clickSpan, sb.length()-(phoneNumber.length()), sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+
+                txtRecipients.setText(sb);
+            }
+
+        };*/
+
+        recipientSpannableBuilder.clear();
+
+        for (LabelData contact : recipientsList){
+            TextView tv = createContactTextView(contact.getValue());
+            BitmapDrawable bd = (BitmapDrawable) convertViewToDrawable(tv);
+            bd.setBounds(0, 0, bd.getIntrinsicWidth(),bd.getIntrinsicHeight());
+
+            String phoneNumber = contact.getLabel() + ",";
+            recipientSpannableBuilder.append(phoneNumber);
+            recipientSpannableBuilder.setSpan(new ImageSpan(bd), recipientSpannableBuilder.length()-(phoneNumber.length()), recipientSpannableBuilder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            //sb.setSpan(clickSpan, sb.length()-(phoneNumber.length()), sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
-        recipientEditText.setText(currentText + number);
+
+        txtRecipients.setText(recipientSpannableBuilder);
+
+        StringBuilder recipientNames = new StringBuilder();
+        int i = 0;
+        for (LabelData contact : recipientsList){
+            if (i == 0){
+                recipientNames.append(contact.getLabel());
+            } else {
+                recipientNames.append(",").append(contact.getLabel());
+            }
+            i++;
+        }
+        selectedAddress = recipientNames.toString();
+        selectedName = getContactName(selectedAddress, mContext);
+        //myToolbar.setTitle(selectedName);
+        initializeSmsList();
+        txtRecipients.setVisibility(View.VISIBLE);
+        inputLayout.setVisibility(View.VISIBLE);
+    }
+
+    public TextView createContactTextView(String text){
+        TextView tv = (TextView) getLayoutInflater().inflate(R.layout.textview_contact_spannable,null);
+        tv.setText(text);
+        tv.setCompoundDrawablesWithIntrinsicBounds(0, 0,R.drawable.remove_circle_icon, 0);
+        tv.setCompoundDrawablePadding(20);
+        return tv;
+    }
+
+    public Object convertViewToDrawable(View view) {
+        int spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        view.measure(spec, spec);
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        Bitmap b = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(),
+                Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        c.translate(-view.getScrollX(), -view.getScrollY());
+        view.draw(c);
+        view.setDrawingCacheEnabled(true);
+        Bitmap cacheBmp = view.getDrawingCache();
+        Bitmap viewBmp = cacheBmp.copy(Bitmap.Config.ARGB_8888, true);
+        view.destroyDrawingCache();
+        return new BitmapDrawable(mContext.getResources(),viewBmp);
+
+    }
+
+/*    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (newMessage && (event.getAction() == MotionEvent.ACTION_DOWN)) {
+            Rect outRect = new Rect();
+            recipientEditText.getGlobalVisibleRect(outRect);
+
+            int x = (int) event.getRawX();
+            int y = (int) event.getRawY();
+            boolean touchingRecipientLayout = touchingView(x,y,recipientLayout) || touchingView(x,y,txtRecipients);
+            boolean touchingInputLayout = touchingView(x,y,inputLayout);
+
+            View v = getCurrentFocus();
+            if ( v == recipientEditText) {
+                if (v != null) {
+                    if (!outRect.contains(x,y) && !touchingInputLayout) {
+                        v.clearFocus();
+                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    } else if (touchingInputLayout){
+                        recyclerView.setVisibility(View.VISIBLE);
+                        fragmentContainer.setVisibility(View.GONE);
+                    }
+                }
+            }
+
+            if (touchingRecipientLayout){
+                recipientLayout.setVisibility(View.VISIBLE);
+                recyclerView.setVisibility(View.GONE);
+                fragmentContainer.setVisibility(View.VISIBLE);
+                txtRecipients.setText(recipientSpannableBuilder);
+            } else if (touchingInputLayout){
+                recipientLayout.setVisibility(View.GONE);
+                recyclerView.setVisibility(View.VISIBLE);
+                fragmentContainer.setVisibility(View.GONE);
+                String recipientsString = recipientSpannableBuilder.toString();
+                int recipientCount = countChar(recipientsString,',');
+                if (recipientCount > 2) {
+                    txtRecipients.setText(getString(R.string.recipients_title,
+                            getContactName(recipientsString.substring(0, recipientsString.indexOf(",")), mContext),
+                            recipientCount - 1));
+                } else if (recipientCount == 2){
+                    txtRecipients.setText(getString(R.string.recipient_title,
+                            getContactName(recipientsString.substring(0, recipientsString.indexOf(",")), mContext)));
+                } else {
+                    txtRecipients.setText(getContactName(recipientsString.substring(0, recipientsString.indexOf(",")),mContext));
+                }
+            }
+        }
+        return super.dispatchTouchEvent( event );
+    }*/
+
+    private void displayRecipientView(boolean display){
+        if (display){
+            recipientLayout.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+            fragmentContainer.setVisibility(View.VISIBLE);
+            txtRecipients.setText(recipientSpannableBuilder);
+
+            View v = getCurrentFocus();
+            if (v != null && v != recipientEditText) {
+                recipientEditText.requestFocus();
+                /*InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);*/
+            }
+        } else {
+            recipientLayout.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
+            fragmentContainer.setVisibility(View.GONE);
+            int recipientCount = recipientsList.size();
+            if (recipientCount > 2) {
+                txtRecipients.setText(getString(R.string.recipients_title,
+                        recipientsList.get(0).getValue(),
+                        recipientCount - 1));
+            } else if (recipientCount == 2){
+                txtRecipients.setText(getString(R.string.recipient_title,recipientsList.get(0).getValue()));
+            } else if (recipientCount == 1){
+                txtRecipients.setText(recipientsList.get(0).getValue());
+            }
+        }
+    }
+
+    private boolean touchingView (int x, int y, View view){
+        return  (x > view.getLeft() && x < view.getRight() && y > view.getTop() && y < view.getBottom());
+    }
+
+    public int countChar(String str, char c)
+    {
+        int count = 0;
+
+        for(int i=0; i < str.length(); i++)
+        {    if(str.charAt(i) == c)
+            count++;
+        }
+
+        return count;
     }
 
     //--------------------------------------------------------------------------------
