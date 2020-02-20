@@ -887,7 +887,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
         };*/
 
-        recipientSpannableBuilder.clear();
+        /*recipientSpannableBuilder.clear();
 
         for (LabelData contact : recipientsList){
             TextView tv = createContactTextView(contact.getValue());
@@ -900,7 +900,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             //sb.setSpan(clickSpan, sb.length()-(phoneNumber.length()), sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        txtRecipients.setText(recipientSpannableBuilder);
+        txtRecipients.setText(recipientSpannableBuilder);*/
 
         StringBuilder recipientNames = new StringBuilder();
         int i = 0;
@@ -913,7 +913,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             i++;
         }
         selectedAddress = recipientNames.toString();
-        selectedName = getContactName(selectedAddress, mContext);
+        //selectedName = getContactName(selectedAddress, mContext);
         //myToolbar.setTitle(selectedName);
         initializeSmsList();
         //txtRecipients.setVisibility(View.VISIBLE);
