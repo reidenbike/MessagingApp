@@ -953,57 +953,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
     }
 
-/*    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        if (newMessage && (event.getAction() == MotionEvent.ACTION_DOWN)) {
-            Rect outRect = new Rect();
-            recipientEditText.getGlobalVisibleRect(outRect);
-
-            int x = (int) event.getRawX();
-            int y = (int) event.getRawY();
-            boolean touchingRecipientLayout = touchingView(x,y,recipientLayout) || touchingView(x,y,txtRecipients);
-            boolean touchingInputLayout = touchingView(x,y,inputLayout);
-
-            View v = getCurrentFocus();
-            if ( v == recipientEditText) {
-                if (v != null) {
-                    if (!outRect.contains(x,y) && !touchingInputLayout) {
-                        v.clearFocus();
-                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                    } else if (touchingInputLayout){
-                        recyclerView.setVisibility(View.VISIBLE);
-                        fragmentContainer.setVisibility(View.GONE);
-                    }
-                }
-            }
-
-            if (touchingRecipientLayout){
-                recipientLayout.setVisibility(View.VISIBLE);
-                recyclerView.setVisibility(View.GONE);
-                fragmentContainer.setVisibility(View.VISIBLE);
-                txtRecipients.setText(recipientSpannableBuilder);
-            } else if (touchingInputLayout){
-                recipientLayout.setVisibility(View.GONE);
-                recyclerView.setVisibility(View.VISIBLE);
-                fragmentContainer.setVisibility(View.GONE);
-                String recipientsString = recipientSpannableBuilder.toString();
-                int recipientCount = countChar(recipientsString,',');
-                if (recipientCount > 2) {
-                    txtRecipients.setText(getString(R.string.recipients_title,
-                            getContactName(recipientsString.substring(0, recipientsString.indexOf(",")), mContext),
-                            recipientCount - 1));
-                } else if (recipientCount == 2){
-                    txtRecipients.setText(getString(R.string.recipient_title,
-                            getContactName(recipientsString.substring(0, recipientsString.indexOf(",")), mContext)));
-                } else {
-                    txtRecipients.setText(getContactName(recipientsString.substring(0, recipientsString.indexOf(",")),mContext));
-                }
-            }
-        }
-        return super.dispatchTouchEvent( event );
-    }*/
-
     private void displayRecipientView(boolean display){
         if (display){
             recipientLayout.setVisibility(View.VISIBLE);
