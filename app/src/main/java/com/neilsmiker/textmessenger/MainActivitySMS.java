@@ -56,6 +56,11 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.flexbox.FlexDirection;
+import com.google.android.flexbox.FlexboxLayoutManager;
+import com.google.android.flexbox.JustifyContent;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -102,6 +107,11 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private Button addRecipientButton;
     private SpannableStringBuilder recipientSpannableBuilder = new SpannableStringBuilder();
     private List<LabelData> recipientsList = new ArrayList<>();
+
+    //Recipient List RecyclerView
+    private RecyclerView recipientRecyclerView;
+    private RecipientsRecyclerAdapter recipientsRecyclerAdapter;
+    private FlexboxLayoutManager flexboxLayoutManager;
 
     //RecyclerView
     private RecyclerView recyclerView;
@@ -286,6 +296,16 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         });
 
         //Set up new message button and layouts
+        recipientRecyclerView = findViewById(R.id.recipientRecyclerView);
+
+        recipientsRecyclerAdapter = new RecipientsRecyclerAdapter(recipientsList, this);
+        recipientRecyclerView.setAdapter(recipientsRecyclerAdapter);
+
+        flexboxLayoutManager = new FlexboxLayoutManager(this);
+        flexboxLayoutManager.setFlexDirection(FlexDirection.ROW);
+        flexboxLayoutManager.setJustifyContent(JustifyContent.FLEX_START);
+        recipientRecyclerView.setLayoutManager(flexboxLayoutManager);
+
         if (newMessage) {
             recipientLayout.setVisibility(View.VISIBLE);
             inputLayout.setVisibility(View.GONE);
@@ -296,20 +316,27 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             addRecipientButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    selectedAddress = recipientEditText.getText().toString();
-                    selectedName = getContactName(selectedAddress, mContext);
-                    //myToolbar.setTitle(selectedName);
-                    initializeSmsList();
+                    //selectedAddress = recipientEditText.getText().toString();
+                    //selectedName = getContactName(selectedAddress, mContext);
 
-                    recyclerView.setVisibility(View.VISIBLE);
+                    String number = recipientEditText.getText().toString();
+                    String name = getContactName(number, mContext);
+                    insertRecipientNumber(number,name);
+                    recipientEditText.setText("");
+
+
+                    //myToolbar.setTitle(selectedName);
+                    //initializeSmsList();
+
+                    /*recyclerView.setVisibility(View.VISIBLE);
                     inputLayout.setVisibility(View.VISIBLE);
                     recipientLayout.setVisibility(View.GONE);
-                    fragmentContainer.setVisibility(View.GONE);
+                    fragmentContainer.setVisibility(View.GONE);*/
 
                     //Set focus to Message EditText and show the keyboard if not already active
-                    mMessageEditText.requestFocus();
+                    /*mMessageEditText.requestFocus();
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.showSoftInput(mMessageEditText, InputMethodManager.SHOW_IMPLICIT);
+                    imm.showSoftInput(mMessageEditText, InputMethodManager.SHOW_IMPLICIT);*/
                 }
             });
 
@@ -826,10 +853,21 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     }
 
     public void insertRecipientNumber(String number, String name){
+
         final LabelData newContact = new LabelData();
         newContact.setLabel(number);
         newContact.setValue(name);
+
+        for (LabelData recipient : recipientsList){
+            if (recipient.getLabel().equals(number)){
+                Toast.makeText(this,getString(R.string.duplicate_recipient),Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
         recipientsList.add(newContact);
+        recipientsRecyclerAdapter.notifyDataSetChanged();
+        flexboxLayoutManager.smoothScrollToPosition(recipientRecyclerView, null, recipientsRecyclerAdapter.getItemCount());
         //TODO Finish the List method for add and removing contacts from recipient list.
 
         /*ClickableSpan clickSpan = new ClickableSpan() {
@@ -885,7 +923,8 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         selectedName = getContactName(selectedAddress, mContext);
         //myToolbar.setTitle(selectedName);
         initializeSmsList();
-        txtRecipients.setVisibility(View.VISIBLE);
+        //txtRecipients.setVisibility(View.VISIBLE);
+        recipientRecyclerView.setVisibility(View.VISIBLE);
         inputLayout.setVisibility(View.VISIBLE);
     }
 
@@ -970,7 +1009,9 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             recipientLayout.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
             fragmentContainer.setVisibility(View.VISIBLE);
-            txtRecipients.setText(recipientSpannableBuilder);
+            //txtRecipients.setText(recipientSpannableBuilder);
+            txtRecipients.setVisibility(View.GONE);
+            recipientRecyclerView.setVisibility(View.VISIBLE);
 
             View v = getCurrentFocus();
             if (v != null && v != recipientEditText) {
@@ -982,6 +1023,8 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             recipientLayout.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
             fragmentContainer.setVisibility(View.GONE);
+            recipientRecyclerView.setVisibility(View.GONE);
+            txtRecipients.setVisibility(View.VISIBLE);
             int recipientCount = recipientsList.size();
             if (recipientCount > 2) {
                 txtRecipients.setText(getString(R.string.recipients_title,

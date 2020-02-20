@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/text_spannable_selector"
+    android:elevation="2dp">
+
+    <TextView
+        android:id="@+id/txtRecipientName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18dp"
+        android:textColor="#000000"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:paddingStart="13dp"
+        android:paddingEnd="5dp"
+        android:maxWidth="160dp"
+        android:ellipsize="end"
+        android:lines="1"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnRemoveRecipient"/>
+
+    <ImageButton
+        android:id="@+id/btnRemoveRecipient"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/remove_circle_icon"
+        android:layout_marginEnd="6dp"
+        app:layout_constraintStart_toEndOf="@id/txtRecipientName"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="@string/remove_recipient_button" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

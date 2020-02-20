@@ -14,4 +14,6 @@
     <string name="recipient">Recipient</string>
     <string name="recipient_title">%1$s and 1 other</string>
     <string name="recipients_title">%1$s and %2$d others</string>
+    <string name="remove_recipient_button">Remove Recipient Button</string>
+    <string name="duplicate_recipient">Duplicate recipient</string>
 </resources>
