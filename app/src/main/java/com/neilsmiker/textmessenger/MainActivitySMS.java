@@ -863,45 +863,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         flexboxLayoutManager.smoothScrollToPosition(recipientRecyclerView, null, recipientsRecyclerAdapter.getItemCount());
         //TODO Finish the List method for add and removing contacts from recipient list.
 
-        /*ClickableSpan clickSpan = new ClickableSpan() {
-
-            @Override
-            public void onClick(@NonNull View view) {
-                //recipientSpannableBuilder.removeSpan(this);
-                recipientsList.remove(newContact);
-
-                SpannableStringBuilder sb = new SpannableStringBuilder();
-                for (LabelData contact : recipientsList){
-                    TextView tv = createContactTextView(contact.getValue());
-                    BitmapDrawable bd = (BitmapDrawable) convertViewToDrawable(tv);
-                    bd.setBounds(0, 0, bd.getIntrinsicWidth(),bd.getIntrinsicHeight());
-
-                    String phoneNumber = contact.getLabel() + ",";
-                    sb.append(phoneNumber);
-                    sb.setSpan(new ImageSpan(bd), sb.length()-(phoneNumber.length()), sb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    //sb.setSpan(clickSpan, sb.length()-(phoneNumber.length()), sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
-
-                txtRecipients.setText(sb);
-            }
-
-        };*/
-
-        /*recipientSpannableBuilder.clear();
-
-        for (LabelData contact : recipientsList){
-            TextView tv = createContactTextView(contact.getValue());
-            BitmapDrawable bd = (BitmapDrawable) convertViewToDrawable(tv);
-            bd.setBounds(0, 0, bd.getIntrinsicWidth(),bd.getIntrinsicHeight());
-
-            String phoneNumber = contact.getLabel() + ",";
-            recipientSpannableBuilder.append(phoneNumber);
-            recipientSpannableBuilder.setSpan(new ImageSpan(bd), recipientSpannableBuilder.length()-(phoneNumber.length()), recipientSpannableBuilder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            //sb.setSpan(clickSpan, sb.length()-(phoneNumber.length()), sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-
-        txtRecipients.setText(recipientSpannableBuilder);*/
-
         StringBuilder recipientNames = new StringBuilder();
         int i = 0;
         for (LabelData contact : recipientsList){

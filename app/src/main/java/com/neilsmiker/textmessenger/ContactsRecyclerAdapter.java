@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.provider.ContactsContract;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -157,16 +159,23 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
         return photo;
     }
 
-    String getContactNumber(int position){
+    List<LabelData> getContactNumber(int position){
         List<LabelData> numbers = listContacts.get(position).getPhone();
+        Log.i("TREX","Size initial: " + numbers.size());
         List<LabelData> emails = listContacts.get(position).getEmail();
-        if (numbers.size() > 0) {
+
+        List<LabelData> numbersAndEmails = new ArrayList<>();
+        numbersAndEmails.addAll(numbers);
+        numbersAndEmails.addAll(emails);
+        //numbers.addAll(listContacts.get(position).getEmail());
+        /*if (numbers.size() > 0) {
             return numbers.get(0).getValue();
         } else if (emails.size() > 0){
             return emails.get(0).getValue();
         } else {
             return "";
-        }
+        }*/
+        return numbersAndEmails;
     }
 
     String getContactName(int position){

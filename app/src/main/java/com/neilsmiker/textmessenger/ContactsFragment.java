@@ -1,14 +1,24 @@
 package com.neilsmiker.textmessenger;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.loader.app.LoaderManager;
@@ -17,6 +27,7 @@ import androidx.loader.content.Loader;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -62,8 +73,15 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         ItemClickSupport.addTo(recyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
             @Override
             public void onItemClicked(RecyclerView recyclerView, int position, View v) {
-                if (activity instanceof MainActivitySMS){
-                    ((MainActivitySMS) activity).insertRecipientNumber(recyclerAdapter.getContactNumber(position),recyclerAdapter.getContactName(position));
+                String name = recyclerAdapter.getContactName(position);
+                List<LabelData> numbers = recyclerAdapter.getContactNumber(position);
+
+                if (numbers.size() == 1) {
+                    if (activity instanceof MainActivitySMS) {
+                        ((MainActivitySMS) activity).insertRecipientNumber(numbers.get(0).getValue(), name);
+                    }
+                } else {
+                    showNumberSelectionDialog(name,numbers);
                 }
             }
         })/*.setOnItemLongClickListener(new ItemClickSupport.OnItemLongClickListener() {
@@ -139,7 +157,6 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         return contacts;
     }
 
-    //Stand-in until Contacts Object is complete:
     private Contact createContactObject(Cursor c){
         Contact objContact = new Contact();
         String id = c.getString(c.getColumnIndex(ContactsContract.Contacts._ID));
@@ -183,7 +200,18 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                         objNumber.setLabel("Unknown");
                         break;
                 }
-                phoneNumbers.add(objNumber);
+
+                boolean containsNumber = false;
+                if (phoneNumbers.size() > 0) {
+                    for (LabelData data : phoneNumbers){
+                        if (data.getValue().contains(phoneNumber)){
+                            containsNumber = true;
+                        }
+                    }
+                }
+                if (!containsNumber) {
+                    phoneNumbers.add(objNumber);
+                }
             } while (cursor.moveToNext());
         }
         if (cursor != null) {
@@ -224,12 +252,65 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                         objEmail.setLabel("Other");
                         break;
                 }
-                emails.add(objEmail);
+
+                boolean containsNumber = false;
+                if (emails.size() > 0) {
+                    for (LabelData data : emails){
+                        if (data.getValue().contains(email)){
+                            containsNumber = true;
+                        }
+                    }
+                }
+                if (!containsNumber) {
+                    emails.add(objEmail);
+                }
             } while (cursor.moveToNext());
         }
         if (cursor != null) {
             cursor.close();
         }
         return emails;
+    }
+
+    private void showNumberSelectionDialog(final String name, final List<LabelData> numbers) {
+
+        final Dialog dialog = new Dialog(activity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.setContentView(R.layout.contact_number_dialog);
+
+        TextView title = dialog.findViewById(R.id.txtNumSelectContactName);
+        title.setText(name);
+
+        final RadioGroup rg = dialog.findViewById(R.id.numberRadioGroup);
+
+        Log.i("TREX","Size: " + numbers.size());
+
+        int i = 0;
+        for (LabelData data : numbers){
+            RadioButton rb = new RadioButton(activity);
+            rb.setText(data.getLabel() + ": " + data.getValue());
+            rb.setId(i);
+            rg.addView(rb);
+            i++;
+        }
+
+        final TextView selectButton = dialog.findViewById(R.id.selectButton);
+        selectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ((MainActivitySMS) activity).insertRecipientNumber(numbers.get(rg.getCheckedRadioButtonId()).getValue(), name);
+                dialog.dismiss();
+            }
+        });
+
+        rg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                selectButton.setVisibility(View.VISIBLE);
+            }
+        });
+
+        dialog.show();
     }
 }
