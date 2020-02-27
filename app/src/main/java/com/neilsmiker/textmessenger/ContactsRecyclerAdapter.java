@@ -161,20 +161,12 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
 
     List<LabelData> getContactNumber(int position){
         List<LabelData> numbers = listContacts.get(position).getPhone();
-        Log.i("TREX","Size initial: " + numbers.size());
         List<LabelData> emails = listContacts.get(position).getEmail();
 
         List<LabelData> numbersAndEmails = new ArrayList<>();
         numbersAndEmails.addAll(numbers);
         numbersAndEmails.addAll(emails);
-        //numbers.addAll(listContacts.get(position).getEmail());
-        /*if (numbers.size() > 0) {
-            return numbers.get(0).getValue();
-        } else if (emails.size() > 0){
-            return emails.get(0).getValue();
-        } else {
-            return "";
-        }*/
+
         return numbersAndEmails;
     }
 

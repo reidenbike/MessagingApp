@@ -284,8 +284,6 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
 
         final RadioGroup rg = dialog.findViewById(R.id.numberRadioGroup);
 
-        Log.i("TREX","Size: " + numbers.size());
-
         int i = 0;
         for (LabelData data : numbers){
             RadioButton rb = new RadioButton(activity);
