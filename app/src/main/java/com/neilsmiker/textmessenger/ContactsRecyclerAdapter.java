@@ -71,19 +71,22 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
         Contact contact = listContacts.get(position);
 
         String userName = contact.getName();
-        String firstLetter = userName.toUpperCase().substring(0,1);
-        String id = contact.getId();
 
-        //Assign the holder:
-        switch (holder.getItemViewType()){
-            case VIEW_TYPE_CONTACT_LETTER:
-                ((ContactLetterHolder) holder).bind(userName, firstLetter, id);
-                break;
+        if (userName != null) {
+            String firstLetter = userName.toUpperCase().substring(0, 1);
+            String id = contact.getId();
 
-            //VIEW_TYPE_CONTACT_DEFAULT
-            default:
-                ((ContactDefaultHolder) holder).bind(userName, id);
-                break;
+            //Assign the holder:
+            switch (holder.getItemViewType()) {
+                case VIEW_TYPE_CONTACT_LETTER:
+                    ((ContactLetterHolder) holder).bind(userName, firstLetter, id);
+                    break;
+
+                //VIEW_TYPE_CONTACT_DEFAULT
+                default:
+                    ((ContactDefaultHolder) holder).bind(userName, id);
+                    break;
+            }
         }
     }
 
