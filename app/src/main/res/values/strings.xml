@@ -17,4 +17,5 @@
     <string name="remove_recipient_button">Remove Recipient Button</string>
     <string name="duplicate_recipient">Duplicate recipient</string>
     <string name="select">Select</string>
+    <string name="unknown">Unknown</string>
 </resources>
