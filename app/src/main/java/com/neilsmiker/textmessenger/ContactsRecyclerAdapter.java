@@ -36,10 +36,14 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     public int getItemViewType(int position) {
         boolean showLetterDivider = false;
         if (position > 0){
-            char lastLetter = listContacts.get(position - 1).getName().toUpperCase().charAt(0);
-            char currentLetter = listContacts.get(position).getName().toUpperCase().charAt(0);
-            if (lastLetter != currentLetter) {
-                showLetterDivider = true;
+            String previousName = listContacts.get(position - 1).getName();
+            String currentName = listContacts.get(position).getName();
+            if (previousName != null && currentName != null) {
+                char lastLetter = previousName.toUpperCase().charAt(0);
+                char currentLetter = currentName.toUpperCase().charAt(0);
+                if (lastLetter != currentLetter) {
+                    showLetterDivider = true;
+                }
             }
         } else {
             showLetterDivider = true;
