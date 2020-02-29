@@ -32,6 +32,8 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -149,6 +151,9 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
             case R.id.delete_item:
                 deleteMessages();
                 return true;
+            case R.id.settings:
+                settings();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -256,6 +261,10 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
         selectionList.clear();
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
+    }
+
+    private void settings() {
+        allowContentObserver = false;
     }
 
 
