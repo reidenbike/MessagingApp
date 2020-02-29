@@ -139,8 +139,10 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     //Content Observer
     private MyContentObserver myContentObserver;
     private String lastID = "null";
+    private boolean contentObserverRegistered = false;
 
     //Contacts Fragment
+    ContactsFragment fragment;
     LinearLayout fragmentContainer;
 
     @Override
@@ -357,6 +359,8 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     } else {
                         addRecipientButton.setEnabled(false);
                     }
+
+                    fragment.filterContacts(recipientEditText.getText().toString());
                 }
 
                 @Override
@@ -387,7 +391,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             FragmentManager fragmentManager = getSupportFragmentManager();
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 
-            ContactsFragment fragment = new ContactsFragment();
+            fragment = new ContactsFragment();
             fragmentTransaction.add(R.id.fragment_container, fragment);
             fragmentTransaction.commit();
         }
@@ -437,12 +441,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
             initializeSmsList();
 
-            if (myContentObserver != null) {
-                getContentResolver().registerContentObserver(
-                        Uri.parse("content://sms/"), true,
-                        myContentObserver);
-                myContentObserver.setCallbacks(MainActivitySMS.this);
-            }
+            registerContentObserver();
         }
 
         //TODO Temporarily removing call to request set default for testing purposes
@@ -453,10 +452,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     protected void onPause() {
         super.onPause();
 
-        if (myContentObserver != null) {
-            getContentResolver().unregisterContentObserver(myContentObserver);
-            myContentObserver.setCallbacks(null);
-        }
+        unregisterContentObserver();
     }
 
     @Override
@@ -754,6 +750,25 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         recyclerAdapter.notifyDataSetChanged();
     }
 
+    //Content Observer
+    private void registerContentObserver(){
+        if (myContentObserver != null) {
+            getContentResolver().registerContentObserver(
+                    Uri.parse("content://sms/"), true,
+                    myContentObserver);
+            myContentObserver.setCallbacks(MainActivitySMS.this);
+            contentObserverRegistered = true;
+        }
+    }
+
+    private void unregisterContentObserver(){
+        if (myContentObserver != null) {
+            getContentResolver().unregisterContentObserver(myContentObserver);
+            myContentObserver.setCallbacks(null);
+            contentObserverRegistered = false;
+        }
+    }
+
     //Called from Content Observer
     @Override
     public void updateMessageFeed() {
@@ -882,6 +897,10 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         //txtRecipients.setVisibility(View.VISIBLE);
         recipientRecyclerView.setVisibility(View.VISIBLE);
         inputLayout.setVisibility(View.VISIBLE);
+
+        if (!contentObserverRegistered){
+            registerContentObserver();
+        }
     }
 
     public TextView createContactTextView(String text){

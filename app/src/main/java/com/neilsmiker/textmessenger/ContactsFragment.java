@@ -163,7 +163,12 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         objContact.setId(id);
         objContact.setPhone(getPhoneNumbers(id));
         objContact.setEmail(getEmailAddresses(id));
-        objContact.setName(c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)));
+
+        String userName = c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+        if (userName == null){
+            userName = getString(R.string.unknown);
+        }
+        objContact.setName(userName);
 
         return objContact;
     }
@@ -310,5 +315,9 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         });
 
         dialog.show();
+    }
+
+    public void filterContacts(String query){
+        recyclerAdapter.getFilter().filter(query);
     }
 }
