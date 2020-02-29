@@ -9,6 +9,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -18,8 +20,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements Filterable {
     private List<Contact> listContacts;
+    private List<Contact> contactListFiltered;
     private Context context;
 
     //View Types
@@ -29,6 +32,7 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     // Provide a suitable constructor (depends on the kind of dataset)
     ContactsRecyclerAdapter(List<Contact> listContacts, Context context) {
         this.listContacts = listContacts;
+        this.contactListFiltered = listContacts;
         this.context = context;
     }
 
@@ -36,8 +40,8 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     public int getItemViewType(int position) {
         boolean showLetterDivider = false;
         if (position > 0){
-            String previousName = listContacts.get(position - 1).getName();
-            String currentName = listContacts.get(position).getName();
+            String previousName = contactListFiltered.get(position - 1).getName();
+            String currentName = contactListFiltered.get(position).getName();
             if (previousName != null && currentName != null) {
                 char lastLetter = previousName.toUpperCase().charAt(0);
                 char currentLetter = currentName.toUpperCase().charAt(0);
@@ -72,7 +76,7 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
-        Contact contact = listContacts.get(position);
+        Contact contact = contactListFiltered.get(position);
 
         String userName = contact.getName();
 
@@ -92,6 +96,59 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
                     break;
             }
         }
+    }
+
+    @Override
+    public Filter getFilter() {
+        return new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence charSequence) {
+                String charString = charSequence.toString().toLowerCase();
+                if (charString.isEmpty()) {
+                    contactListFiltered = listContacts;
+                } else {
+                    List<Contact> filteredList = new ArrayList<>();
+                    for (Contact row : listContacts) {
+                        boolean addContact = false;
+
+                        //Check for matching phone numbers:
+                        for (LabelData data : row.getPhone()){
+                            if (data.getValue().replaceAll("[^0-9]", "").contains(charString)){
+                                addContact = true;
+                            }
+                        }
+
+                        //Check for matching emails:
+                        for (LabelData data : row.getEmail()){
+                            if (data.getValue().toLowerCase().contains(charString)){
+                                addContact = true;
+                            }
+                        }
+
+                        //Check for matching names:
+                        if (row.getName().toLowerCase().contains(charString)) {
+                            addContact = true;
+                        }
+
+                        if (addContact){
+                            filteredList.add(row);
+                        }
+                    }
+
+                    contactListFiltered = filteredList;
+                }
+
+                FilterResults filterResults = new FilterResults();
+                filterResults.values = contactListFiltered;
+                return filterResults;
+            }
+
+            @Override
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                //contactListFiltered = (ArrayList<Contact>) results.values;
+                notifyDataSetChanged();
+            }
+        };
     }
 
     //ViewHolders
@@ -138,7 +195,7 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
-        return listContacts.size();
+        return contactListFiltered.size();
     }
 
     private Bitmap getProfilePic(Context context, String contactId) {
@@ -167,8 +224,8 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     }
 
     List<LabelData> getContactNumber(int position){
-        List<LabelData> numbers = listContacts.get(position).getPhone();
-        List<LabelData> emails = listContacts.get(position).getEmail();
+        List<LabelData> numbers = contactListFiltered.get(position).getPhone();
+        List<LabelData> emails = contactListFiltered.get(position).getEmail();
 
         List<LabelData> numbersAndEmails = new ArrayList<>();
         numbersAndEmails.addAll(numbers);
@@ -178,6 +235,6 @@ public class ContactsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.V
     }
 
     String getContactName(int position){
-        return listContacts.get(position).getName();
+        return contactListFiltered.get(position).getName();
     }
 }
