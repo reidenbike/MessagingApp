@@ -264,7 +264,8 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     }
 
     private void settings() {
-        allowContentObserver = false;
+        Intent intent = new Intent(MainActivity.this, MainActivitySettings.class);
+        startActivity(intent);
     }
 
 

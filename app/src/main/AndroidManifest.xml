@@ -54,7 +54,10 @@
                 <data android:scheme="mmsto" />
             </intent-filter>
         </activity>
-
+        <activity android:name=".MainActivitySettings"
+            android:configChanges="orientation|screenSize"
+            android:parentActivityName=".MainActivity">
+        </activity>
         <!-- BroadcastReceiver that listens for incoming SMS messages -->
         <receiver android:name=".SMSreceiver" android:enabled="false" android:exported="true"
             android:permission="android.permission.BROADCAST_SMS">
