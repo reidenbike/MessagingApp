@@ -1073,9 +1073,16 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     public String getContactId(final String phoneNumber, Context context)
     {
         if (checkPermission()) {
-            Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+            Uri uri;
 
-            String[] projection = new String[]{ContactsContract.PhoneLookup.CONTACT_ID};
+            String[] projection;
+            if (phoneNumber.contains("@")){
+                uri = Uri.withAppendedPath(ContactsContract.CommonDataKinds.Email.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+                projection = new String[]{ContactsContract.CommonDataKinds.Email.CONTACT_ID};
+            } else {
+                uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+                projection = new String[]{ContactsContract.PhoneLookup._ID};
+            }
 
             String contactId = "";
             Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
@@ -1152,6 +1159,19 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             optionsMenu.findItem(R.id.call_item).setVisible(true);
             optionsMenu.findItem(R.id.contact_item).setVisible(true);
             optionsMenu.findItem(R.id.delete_item).setVisible(true);
+        }
+    }
+
+    public void openContactCard(String selectedAddress){
+        if (selectedAddress != null){
+            String contactID = getContactId(selectedAddress,mContext);
+            if (!contactID.equals("")) {
+                //No permissions required for ACTION_DIAL. Calling directly from app using ACTION_CALL requires permission grants (see Manifest)
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactID);
+                intent.setData(uri);
+                startActivity(intent);
+            }
         }
     }
 

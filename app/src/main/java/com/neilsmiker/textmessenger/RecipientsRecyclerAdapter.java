@@ -1,31 +1,18 @@
 package com.neilsmiker.textmessenger;
 
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
+import android.content.Intent;
 import android.net.Uri;
 import android.provider.ContactsContract;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
-
-import androidx.annotation.NonNull;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.recyclerview.widget.RecyclerView;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 public class RecipientsRecyclerAdapter extends RecyclerView.Adapter<RecipientsRecyclerAdapter.ViewHolder> {
     private List<LabelData> listRecipients;
@@ -34,12 +21,12 @@ public class RecipientsRecyclerAdapter extends RecyclerView.Adapter<RecipientsRe
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    class ViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
-        public TextView txtRecipientName;
-        public ImageButton btnRemoveRecipient;
+        TextView txtRecipientName;
+        ImageButton btnRemoveRecipient;
 
-        public ViewHolder(View v) {
+        ViewHolder(View v) {
             super(v);
             txtRecipientName = v.findViewById(R.id.txtRecipientName);
             btnRemoveRecipient = v.findViewById(R.id.btnRemoveRecipient);
@@ -47,7 +34,7 @@ public class RecipientsRecyclerAdapter extends RecyclerView.Adapter<RecipientsRe
     }
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public RecipientsRecyclerAdapter(List<LabelData> listRecipients, Context context) {
+    RecipientsRecyclerAdapter(List<LabelData> listRecipients, Context context) {
         this.listRecipients = listRecipients;
         this.context = context;
     }
@@ -70,11 +57,17 @@ public class RecipientsRecyclerAdapter extends RecyclerView.Adapter<RecipientsRe
     @Override
     public void onBindViewHolder(RecipientsRecyclerAdapter.ViewHolder holder, final int position) {
         // Get the data model based on position
-        LabelData contact = listRecipients.get(position);
-        String contactName = contact.getValue();
+        final LabelData contact = listRecipients.get(position);
+        final String contactName = contact.getValue();
 
         // Set item views based on your views and data model
         TextView txtRecipientName = holder.txtRecipientName;
+        txtRecipientName.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ((MainActivitySMS) context).openContactCard(contact.getLabel());
+            }
+        });
         txtRecipientName.setText(contactName);
 
         ImageButton btnRemoveRecipient = holder.btnRemoveRecipient;
