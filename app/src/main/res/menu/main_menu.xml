@@ -2,9 +2,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/delete_item"
-        android:title="@string/delete_messages"
-        android:icon="@drawable/ic_delete_white_24dp"
+        android:id="@+id/call_item"
+        android:title="@string/call"
+        android:icon="@drawable/ic_call_white_24dp"
+        app:showAsAction="always"
+        android:visible="false"/>
+    <item
+        android:id="@+id/contact_item"
+        android:title="@string/view_contact"
+        android:icon="@drawable/ic_contact_white_24dp"
         app:showAsAction="ifRoom"
+        android:visible="false"/>
+    <item
+        android:id="@+id/delete_item"
+        android:title="@string/delete_message_thread"
+        android:icon="@drawable/ic_delete_white_24dp"
+        app:showAsAction="never"
         android:visible="false"/>
 </menu>

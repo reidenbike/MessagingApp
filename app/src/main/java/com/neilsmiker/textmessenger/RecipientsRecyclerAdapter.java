@@ -83,6 +83,12 @@ public class RecipientsRecyclerAdapter extends RecyclerView.Adapter<RecipientsRe
             public void onClick(View v) {
                 listRecipients.remove(position);
                 notifyDataSetChanged();
+
+                if (listRecipients.size() < 1) {
+                    ((MainActivitySMS) context).hideMessageMenuItems(true);
+                } else if (listRecipients.size() == 1){
+                    ((MainActivitySMS) context).hideMessageMenuItems(false);
+                }
             }
         });
     }

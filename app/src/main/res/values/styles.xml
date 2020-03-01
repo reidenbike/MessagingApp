@@ -10,10 +10,14 @@
 
         <item name="android:colorButtonNormal">@drawable/button_selector</item>
         <item name="colorButtonNormal">@drawable/button_selector</item>
-        <item name="android:buttonStyle">@style/FriendlyButtonStyle</item>
+        <item name="android:buttonStyle">@style/ButtonStyle</item>
+
+        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeBackground">@color/colorPrimary</item>
+        <item name="actionModeCloseDrawable">@drawable/ic_close_black_24dp</item>
     </style>
 
-    <style name="FriendlyButtonStyle" parent="Widget.AppCompat.Button">
+    <style name="ButtonStyle" parent="Widget.AppCompat.Button">
         <item name="android:textColor">@color/colorTitle</item>
 
     </style>

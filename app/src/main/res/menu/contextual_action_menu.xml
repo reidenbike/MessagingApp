@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/forward_item"
+        android:title="@string/forward_message"
+        android:icon="@drawable/ic_forward_white_24dp"
+        app:showAsAction="ifRoom"
+        android:visible="true"/>
+    <item
+        android:id="@+id/copy_item"
+        android:title="@string/copy_message"
+        android:icon="@drawable/ic_content_copy_white_24dp"
+        app:showAsAction="ifRoom"
+        android:visible="true"/>
+    <item
+        android:id="@+id/delete_item"
+        android:title="@string/delete_messages"
+        android:icon="@drawable/ic_delete_white_24dp"
+        app:showAsAction="ifRoom"
+        android:visible="true"/>
+</menu>
