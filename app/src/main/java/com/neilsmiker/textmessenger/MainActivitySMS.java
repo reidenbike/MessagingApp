@@ -429,7 +429,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         } else {
             if (forwardedMessage != null){
                 mMessageEditText.setText(forwardedMessage);
-                Log.i(TAG,forwardedMessage);
             }
         }
     }
