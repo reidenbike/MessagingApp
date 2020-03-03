@@ -157,6 +157,16 @@
         app:layout_constraintTop_toBottomOf="@id/recipientLayout"
         app:layout_constraintBottom_toTopOf="@id/inputLayout" />
 
+    <Button
+        android:id="@+id/btnScrollToBottom"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_margin="15dp"
+        android:background="@drawable/scroll_bottom_button_background"
+        app:layout_constraintBottom_toTopOf="@id/inputLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:visibility="gone"/>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/inputLayout"
         android:layout_width="match_parent"
@@ -221,14 +231,4 @@
             android:contentDescription="@string/send_button_label"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/appbar"
-        app:layout_constraintBottom_toTopOf="@id/inputLayout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

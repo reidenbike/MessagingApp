@@ -13,11 +13,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -27,11 +24,7 @@ import android.provider.Telephony;
 import android.telephony.SmsManager;
 import android.text.Editable;
 import android.text.InputFilter;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
-import android.text.style.ImageSpan;
-import android.util.Log;
 import android.view.ActionMode;
 import android.view.Display;
 import android.view.Menu;
@@ -43,15 +36,17 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.flexbox.FlexDirection;
 import com.google.android.flexbox.FlexboxLayoutManager;
 import com.google.android.flexbox.JustifyContent;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -65,10 +60,6 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 
 public class MainActivitySMS extends AppCompatActivity implements MyContentObserver.ContentObserverCallbacks {
 
@@ -77,7 +68,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private Activity mActivity;
 
     //Final variables
-    private static final String TAG = "TREX";
     public static final int DEFAULT_MSG_LENGTH_LIMIT = 160;
     private static final int RC_PHOTO_PICKER = 2;
 
@@ -90,10 +80,8 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
     //UI
     private Toolbar myToolbar;
-    private ProgressBar mProgressBar;
-    private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
-    private Button mSendButton;
+    private Button mSendButton, btnScrollToBottom;
     private ConstraintLayout inputLayout;
 
     //Lists
@@ -114,7 +102,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private EditText recipientEditText;
     private TextView txtRecipients;
     private Button addRecipientButton;
-    private SpannableStringBuilder recipientSpannableBuilder = new SpannableStringBuilder();
     private List<LabelData> recipientsList = new ArrayList<>();
     private String recipientsTitleText;
 
@@ -134,8 +121,9 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private int displayLimit;
     private boolean allowLazyLoad = true;
     private boolean allowRefocusScroll = false;
-    int currentScrollPosition = 0;
-    int currentScrollOffset = 0;
+    private int currentScrollPosition = 0;
+    private int currentScrollOffset = 0;
+    private boolean scrollingToBottom = false;
 
     //Set the RecyclerView scroll position when starting the activity (to 0) or when opening/closing the soft keyboard (to previous position)
     //TODO Still has issues returning to correct scroll position when large messages have offset
@@ -188,10 +176,10 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         // Initialize references to views
-        mProgressBar = findViewById(R.id.progressBar);
-        mPhotoPickerButton = findViewById(R.id.photoPickerButton);
+        ImageButton mPhotoPickerButton = findViewById(R.id.photoPickerButton);
         mMessageEditText = findViewById(R.id.messageEditText);
         mSendButton = findViewById(R.id.sendButton);
+        btnScrollToBottom = findViewById(R.id.btnScrollToBottom);
         inputLayout = findViewById(R.id.inputLayout);
         recipientLayout = findViewById(R.id.recipientLayout);
 
@@ -245,21 +233,25 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     //Get the current position and offset for the first visible item. Use these ints to set the scroll position
                     // when opening/closing the soft keyboard.
                     currentScrollPosition = linearLayoutManager.findFirstVisibleItemPosition();
+                    if (currentScrollPosition >= 5){
+                        btnScrollToBottom.setVisibility(View.VISIBLE);
+                    } else if (currentScrollPosition == 0){
+                        btnScrollToBottom.setVisibility(View.GONE);
+                    }
                     View child = linearLayoutManager.getChildAt(0);
                     if (child != null) {
                         currentScrollOffset = recyclerView.getBottom() - recyclerView.getTop() - child.getBottom();
                     }
                     //Log.i(TAG,"Current position: " + currentScrollPosition + ", offset: " + currentScrollOffset);
-                } else {
+                } else if (!scrollingToBottom) {
                     //Called when soft keyboard opens/closes. Set the scroll position via the Runnable
                     handler.post(r);
+                } else {
+                    scrollingToBottom = false;
                 }
             }
         };
         recyclerView.addOnScrollListener(scrollListener);
-
-        // Initialize progress bar
-        mProgressBar.setVisibility(ProgressBar.INVISIBLE);
 
         // ImagePickerButton shows an image picker to upload a image for a message
         mPhotoPickerButton.setOnClickListener(new View.OnClickListener() {
@@ -290,6 +282,18 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     myToolbar.setTitle((recipientsTitleText != null) ? recipientsTitleText : getString(R.string.new_message));
                     txtRecipients.setVisibility(View.GONE);
                 }
+            }
+        });
+
+        btnScrollToBottom.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                scrollingToBottom = true;
+                linearLayoutManager.scrollToPosition(0);
+                currentScrollPosition = 0;
+                currentScrollOffset = 0;
+                recyclerView.stopScroll();
+                btnScrollToBottom.setVisibility(View.GONE);
             }
         });
 
@@ -436,10 +440,11 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RC_PHOTO_PICKER && resultCode == RESULT_OK) {
+
+        //TODO display image attached to current message and send via MMS on send button
+        /*if (requestCode == RC_PHOTO_PICKER && resultCode == RESULT_OK) {
             Uri selectedImageUri = data.getData();
-            //TODO display attached to current message and send via MMS on send button
-        }
+        }*/
     }
 
     @Override
@@ -609,8 +614,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         Sms message = listMessages.get(position);
         boolean isUser = message.getFolderName().equals("sent");
         if (selectionList.contains(position)) {
-            //TODO Pretty sure removal by index can't be replaced here, but test this later
-            selectionList.remove(selectionList.indexOf(position));
+            selectionList.remove((Integer) position);
             message.setSelected(false);
             if (isUser) {
                 textBubble.setBackground(getDrawable(R.drawable.text_bubble_user));
@@ -618,10 +622,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                 textBubble.setBackground(getDrawable(R.drawable.text_bubble_other));
             }
             tv.setTextColor(Color.parseColor("#000000"));
-            //Log.i(TAG, String.valueOf(selectionList));
         } else if (selectionList.size() > 0 || longClick) {
-            //TODO Add on main back button pushed action to clear selection, else super.
-            // Also enable back button on action bar with same action.
             selectionList.add(position);
             message.setSelected(true);
             if (isUser) {
@@ -634,7 +635,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
         if (selectionList.size() > 0) {
             startActionMode();
-            //optionsMenu.findItem(R.id.delete_item).setVisible(true);
             if (selectionList.size() > 1){
                 actionMenu.findItem(R.id.copy_item).setVisible(false);
                 actionMenu.findItem(R.id.forward_item).setVisible(false);
@@ -648,12 +648,9 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             if (actionMode != null) {
                 actionMode.finish();
             }
-            //optionsMenu.findItem(R.id.delete_item).setVisible(false);
         }
 
         Collections.sort(selectionList, Collections.<Integer>reverseOrder());
-
-        //Log.i(TAG, String.valueOf(selectionList));
     }
 
     private void deleteMessages() {
@@ -811,25 +808,22 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_CODE: {
-                // When request is cancelled, the results array are empty
-                if (
-                        (grantResults.length > 0) &&
-                                (grantResults[0]
-                                        + grantResults[1]
-                                        + grantResults[2]
-                                        == PackageManager.PERMISSION_GRANTED
-                                )
-                ) {
-                    // Permissions are granted
-                    initializeSmsList();
-                    enableSmsButton();
-                } else {
-                    // Permissions are denied
-                    Toast.makeText(mContext, "Permissions denied.", Toast.LENGTH_SHORT).show();
-                    disableSmsButton();
-                }
+        if (requestCode == PERMISSIONS_REQUEST_CODE) {
+            if (
+                    (grantResults.length > 0) &&
+                            (grantResults[0]
+                                    + grantResults[1]
+                                    + grantResults[2]
+                                    == PackageManager.PERMISSION_GRANTED
+                            )
+            ) {
+                // Permissions are granted
+                initializeSmsList();
+                enableSmsButton();
+            } else {
+                // Permissions are denied
+                Toast.makeText(mContext, "Permissions denied.", Toast.LENGTH_SHORT).show();
+                disableSmsButton();
             }
         }
     }
@@ -917,7 +911,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                 values.put(Telephony.Sms.BODY, message);
                 getContentResolver().insert(Telephony.Sms.Sent.CONTENT_URI, values);
             }
-            // TODO Also add listener to check if message sends correctly and address errors. Display spinner until callback triggers?
+            // TODO Also add listener to check if message sends correctly and address errors. Display progressbar until callback triggers?
         }
     }
 
@@ -993,7 +987,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
                 if (!id.equals(lastID) && address.equals(selectedAddress)) {
                     lastID = id;
-                    //TODO Move autoscroll to public. If false, display bottom notification that can be tapped to scroll to bottom
                     boolean autoscroll = linearLayoutManager.findFirstVisibleItemPosition() == 0;
                     listMessages.add(0,createSmsObject(c));
                     recyclerAdapter.notifyItemInserted(0);
@@ -1115,7 +1108,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         recipientsList.add(newContact);
         recipientsRecyclerAdapter.notifyDataSetChanged();
         flexboxLayoutManager.smoothScrollToPosition(recipientRecyclerView, null, recipientsRecyclerAdapter.getItemCount());
-        //TODO Finish the List method for add and removing contacts from recipient list.
 
         StringBuilder recipientNames = new StringBuilder();
         int i = 0;
@@ -1128,10 +1120,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             i++;
         }
         selectedAddress = recipientNames.toString();
-        //selectedName = getContactName(selectedAddress, mContext);
-        //myToolbar.setTitle(selectedName);
         initializeSmsList();
-        //txtRecipients.setVisibility(View.VISIBLE);
         recipientRecyclerView.setVisibility(View.VISIBLE);
         inputLayout.setVisibility(View.VISIBLE);
 
@@ -1173,31 +1162,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                 startActivity(intent);
             }
         }
-    }
-
-    public TextView createContactTextView(String text){
-        TextView tv = (TextView) getLayoutInflater().inflate(R.layout.textview_contact_spannable,null);
-        tv.setText(text);
-        tv.setCompoundDrawablesWithIntrinsicBounds(0, 0,R.drawable.remove_circle_icon, 0);
-        tv.setCompoundDrawablePadding(20);
-        return tv;
-    }
-
-    public Object convertViewToDrawable(View view) {
-        int spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-        view.measure(spec, spec);
-        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
-        Bitmap b = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(),
-                Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(b);
-        c.translate(-view.getScrollX(), -view.getScrollY());
-        view.draw(c);
-        view.setDrawingCacheEnabled(true);
-        Bitmap cacheBmp = view.getDrawingCache();
-        Bitmap viewBmp = cacheBmp.copy(Bitmap.Config.ARGB_8888, true);
-        view.destroyDrawingCache();
-        return new BitmapDrawable(mContext.getResources(),viewBmp);
-
     }
 
     private void displayRecipientView(boolean display){
@@ -1245,22 +1209,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                 txtRecipients.setText(recipientsList.get(0).getValue());
             }
         }
-    }
-
-    private boolean touchingView (int x, int y, View view){
-        return  (x > view.getLeft() && x < view.getRight() && y > view.getTop() && y < view.getBottom());
-    }
-
-    public int countChar(String str, char c)
-    {
-        int count = 0;
-
-        for(int i=0; i < str.length(); i++)
-        {    if(str.charAt(i) == c)
-            count++;
-        }
-
-        return count;
     }
 
     //--------------------------------------------------------------------------------
