@@ -1,6 +1,6 @@
 package com.neilsmiker.textmessenger;
 
-public class LabelData {
+class LabelData {
     private String _label;
     private String _value;
 
@@ -9,7 +9,7 @@ public class LabelData {
         _value = value;
     }*/
 
-    public String getLabel(){
+    String getLabel(){
         return _label;
     }
     String getValue(){

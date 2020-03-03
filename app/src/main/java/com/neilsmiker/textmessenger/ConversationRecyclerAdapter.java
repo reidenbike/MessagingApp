@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -36,16 +37,16 @@ public class ConversationRecyclerAdapter extends RecyclerView.Adapter<Conversati
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    static class ViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
-        public ImageView profilePic;
-        public TextView txtLastMessage;
-        public TextView txtProfileName;
-        public TextView txtTimestamp;
-        public TextView txtUnreadBadge;
-        public ConstraintLayout conversationLayout;
+        ImageView profilePic;
+        TextView txtLastMessage;
+        TextView txtProfileName;
+        TextView txtTimestamp;
+        TextView txtUnreadBadge;
+        ConstraintLayout conversationLayout;
 
-        public ViewHolder(View v) {
+        ViewHolder(View v) {
             super(v);
             profilePic = v.findViewById(R.id.profilePic);
             txtLastMessage = v.findViewById(R.id.txtLastMessage);
@@ -57,13 +58,14 @@ public class ConversationRecyclerAdapter extends RecyclerView.Adapter<Conversati
     }
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public ConversationRecyclerAdapter(List<Sms> listConversations, Context context) {
+    ConversationRecyclerAdapter(List<Sms> listConversations, Context context) {
         this.listConversations = listConversations;
         this.context = context;
         currentDate = dayDateFormat.format(new Date(System.currentTimeMillis()));
     }
 
     // Create new views (invoked by the layout manager)
+    @NonNull
     @Override
     public ConversationRecyclerAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         Context context = parent.getContext();
@@ -73,8 +75,7 @@ public class ConversationRecyclerAdapter extends RecyclerView.Adapter<Conversati
         View conversationView = inflater.inflate(R.layout.item_conversation, parent, false);
 
         // Return a new holder instance
-        ViewHolder viewHolder = new ViewHolder(conversationView);
-        return viewHolder;
+        return new ViewHolder(conversationView);
     }
 
     // Replace the contents of a view (invoked by the layout manager)
@@ -98,7 +99,7 @@ public class ConversationRecyclerAdapter extends RecyclerView.Adapter<Conversati
         String timestamp = message.getTime();
 
         if (timestamp != null) {
-            Date date = new Date(Long.valueOf(timestamp));
+            Date date = new Date(Long.parseLong(timestamp));
             String messageDate = dayDateFormat.format(date);
             if (messageDate.equals(currentDate)){
                 messageDate = hourDateFormat.format(date);
@@ -157,7 +158,7 @@ public class ConversationRecyclerAdapter extends RecyclerView.Adapter<Conversati
             InputStream inputStream = null;
             if (contactId != null) {
                 inputStream = ContactsContract.Contacts.openContactPhotoInputStream(context.getContentResolver(),
-                        ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.valueOf(contactId)));
+                        ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId)));
             }
 
             if (inputStream != null) {

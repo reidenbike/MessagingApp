@@ -1,16 +1,14 @@
 package com.neilsmiker.textmessenger;
 
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
-import android.provider.ContactsContract;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
+
 import java.util.List;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,7 +19,7 @@ public class RecipientsRecyclerAdapter extends RecyclerView.Adapter<RecipientsRe
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder
-    class ViewHolder extends RecyclerView.ViewHolder {
+    static class ViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
         TextView txtRecipientName;
         ImageButton btnRemoveRecipient;

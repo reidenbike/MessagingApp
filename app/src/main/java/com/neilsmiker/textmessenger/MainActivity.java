@@ -192,8 +192,7 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         TextView txtTimestamp = view.findViewById(R.id.txtTimestamp);
 
         if (selectionList.contains(position)) {
-            //TODO Pretty sure removal by index can't be replaced here, but test this later
-            selectionList.remove(selectionList.indexOf(position));
+            selectionList.remove((Integer) position);
             message.setSelected(false);
 
             //Set item to not selected

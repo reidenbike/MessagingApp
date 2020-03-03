@@ -29,4 +29,5 @@
     <string name="delete_selected_message">Delete the selected message?</string>
     <string name="delete_selected_messages">Delete the %1$d selected messages?</string>
     <string name="delete_entire_thread">Delete entire message thread?</string>
+    <string name="colon_label">%1$s: %2$s</string>
 </resources>

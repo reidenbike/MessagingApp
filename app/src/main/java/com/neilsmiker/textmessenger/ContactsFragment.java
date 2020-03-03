@@ -9,15 +9,17 @@ import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -27,10 +29,6 @@ import androidx.loader.content.Loader;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 public class ContactsFragment extends Fragment  implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -131,7 +129,7 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                 ContactsContract.Contacts.HAS_PHONE_NUMBER
         } ;
 
-        String selection = null;                                 //Selection criteria
+        //String selection = null;                                 //Selection criteria
         String[] selectionArgs = {};                             //Selection criteria
         String sortOrder = ContactsContract.Contacts.DISPLAY_NAME + " ASC"; //The sort order for the returned rows
 
@@ -139,7 +137,7 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                 Objects.requireNonNull(getActivity()).getApplicationContext(),
                 contactsUri,
                 projection,
-                selection,
+                null,
                 selectionArgs,
                 sortOrder);
     }
@@ -209,8 +207,9 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                 boolean containsNumber = false;
                 if (phoneNumbers.size() > 0) {
                     for (LabelData data : phoneNumbers){
-                        if (data.getValue().contains(phoneNumber)){
+                        if (data.getValue().contains(phoneNumber)) {
                             containsNumber = true;
+                            break;
                         }
                     }
                 }
@@ -261,8 +260,9 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
                 boolean containsNumber = false;
                 if (emails.size() > 0) {
                     for (LabelData data : emails){
-                        if (data.getValue().contains(email)){
+                        if (data.getValue().contains(email)) {
                             containsNumber = true;
+                            break;
                         }
                     }
                 }
@@ -292,7 +292,7 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         int i = 0;
         for (LabelData data : numbers){
             RadioButton rb = new RadioButton(activity);
-            rb.setText(data.getLabel() + ": " + data.getValue());
+            rb.setText(getString(R.string.colon_label,data.getLabel(),data.getValue()));
             rb.setId(i);
             rg.addView(rb);
             i++;
@@ -317,7 +317,7 @@ public class ContactsFragment extends Fragment  implements LoaderManager.LoaderC
         dialog.show();
     }
 
-    public void filterContacts(String query){
+    void filterContacts(String query){
         recyclerAdapter.getFilter().filter(query);
     }
 }
