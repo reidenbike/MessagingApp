@@ -122,30 +122,32 @@ public class SmsRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (position > 0) {
             String nextUserName = Objects.requireNonNull(listMessages.get(position - 1)).getDisplayName();
             long nextTimestamp = Long.parseLong(Objects.requireNonNull(listMessages.get(position - 1)).getTime());
-            String nextDay = dayDateFormat.format(nextTimestamp);
+            boolean sameDay = dayDateFormat.format(nextTimestamp).equals(currentDay);
 
             boolean nextTimestampRecent = nextTimestamp - Long.parseLong(Objects.requireNonNull(timestamp)) < 120000;
             if (folder.equals("inbox")) {
                 if (nextUserName != null && nextUserName.equals(userName)) {
                     nameVisibility = View.GONE;
-                    if (nextTimestampRecent && nextDay.equals(currentDay)) {
+                    if (nextTimestampRecent && sameDay) {
                         timestampVisibility = View.INVISIBLE;
-                    } else if (nextDay.equals(currentDay)) {
+                    } else if (sameDay) {
                         nameVisibility = View.INVISIBLE;
                     }
                     if (nextTimestampRecent) {
                         timestampVisibility = View.INVISIBLE;
                     } else {
-                        nameVisibility = View.INVISIBLE;
+                        if (!sameDay) {
+                            nameVisibility = View.VISIBLE;
+                        }
                     }
                 }
             } else {
                 String nextFolderName = Objects.requireNonNull(listMessages.get(position - 1)).getFolderName();
                 if (nextFolderName != null && nextFolderName.equals(folder)) {
                     nameVisibility = View.GONE;
-                    if (nextTimestampRecent && nextDay.equals(currentDay)) {
+                    if (nextTimestampRecent && sameDay) {
                         timestampVisibility = View.INVISIBLE;
-                    } else if (nextDay.equals(currentDay)) {
+                    } else if (sameDay) {
                         nameVisibility = View.INVISIBLE;
                     }
                 } else {

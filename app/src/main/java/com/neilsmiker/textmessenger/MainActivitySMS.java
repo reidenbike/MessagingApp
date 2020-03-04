@@ -73,9 +73,9 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
     //Menus:
     Menu optionsMenu;
-    Menu actionMenu;
 
     //Contexual Action Mode:
+    Menu actionMenu;
     private ActionMode actionMode;
 
     //UI
@@ -341,10 +341,15 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
                     //selectedAddress = recipientEditText.getText().toString();
                     //selectedName = getContactName(selectedAddress, mContext);
 
-                    String number = recipientEditText.getText().toString();
+                    String number = recipientEditText.getText().toString().replaceAll("\\.","").replaceAll("-","");
                     String name = getContactName(number, mContext);
-                    insertRecipientNumber(number,name);
-                    recipientEditText.setText("");
+
+                    if (android.text.TextUtils.isDigitsOnly(number) && number.length() >= 3) {
+                        insertRecipientNumber(number, name);
+                        recipientEditText.setText("");
+                    } else {
+                        Toast.makeText(mContext,"Not a valid number",Toast.LENGTH_SHORT).show();
+                    }
 
 
                     //myToolbar.setTitle(selectedName);
