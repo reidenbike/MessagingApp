@@ -459,7 +459,9 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         optionsMenu = menu;
 
         if (selectedAddress != null) {
-            optionsMenu.findItem(R.id.call_item).setVisible(true);
+            if (!selectedAddress.contains("@")) {
+                optionsMenu.findItem(R.id.call_item).setVisible(true);
+            }
             optionsMenu.findItem(R.id.contact_item).setVisible(true);
             optionsMenu.findItem(R.id.delete_item).setVisible(true);
         }
