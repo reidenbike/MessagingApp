@@ -2,6 +2,9 @@ package com.neilsmiker.textmessenger;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -10,15 +13,18 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
+import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,6 +41,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity implements MyContentObserver.ContentObserverCallbacks {
 
@@ -46,6 +53,10 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
 
     //Menu:
     Menu optionsMenu;
+
+    //Contexual Action Mode:
+    Menu actionMenu;
+    private ActionMode actionMode;
 
     //Lists
     private List<Sms> listConversations = new ArrayList<>();
@@ -146,9 +157,9 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.delete_item:
+            /*case R.id.delete_item:
                 deleteMessages();
-                return true;
+                return true;*/
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -180,6 +191,68 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         if (myContentObserver != null) {
             getContentResolver().unregisterContentObserver(myContentObserver);
             myContentObserver.setCallbacks(null);
+        }
+    }
+
+    //Contexual Action Mode and item selection
+    //Set up Contexual Action Mode
+    private ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
+
+        // Called when the action mode is created; startActionMode() was called
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            // Inflate a menu resource providing context menu items
+            MenuInflater inflater = mode.getMenuInflater();
+            inflater.inflate(R.menu.contextual_action_menu, menu);
+
+            actionMenu = menu;
+            actionMenu.findItem(R.id.forward_item).setVisible(false);
+            actionMenu.findItem(R.id.copy_item).setVisible(false);
+            return true;
+        }
+
+        // Called each time the action mode is shown. Always called after onCreateActionMode, but
+        // may be called multiple times if the mode is invalidated.
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false; // Return false if nothing is done
+        }
+
+        // Called when the user selects a contextual menu item
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.delete_item:
+                    showDeleteConfirmationDialog();
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // Called when the user exits the action mode
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            endActionMode();
+            actionMode = null;
+        }
+    };
+
+    private void startActionMode(){
+        if (actionMode == null) {
+            // Start the CAB using the ActionMode.Callback defined above
+            actionMode = mActivity.startActionMode(actionModeCallback);
+        }
+    }
+
+    private void endActionMode(){
+        if (actionMode != null){
+            for (int position : selectionList){
+                Sms message = listConversations.get(position);
+                message.setSelected(false);
+                recyclerAdapter.notifyItemChanged(position);
+            }
+            selectionList.clear();
         }
     }
 
@@ -222,9 +295,16 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         }
 
         if (selectionList.size() > 0) {
-            optionsMenu.findItem(R.id.delete_item).setVisible(true);
+            startActionMode();
+            if (selectionList.size() > 1){
+                actionMenu.findItem(R.id.delete_item).setIcon(R.drawable.ic_delete_sweep_white_24dp);
+            } else {
+                actionMenu.findItem(R.id.delete_item).setIcon(R.drawable.ic_delete_white_24dp);
+            }
         } else {
-            optionsMenu.findItem(R.id.delete_item).setVisible(false);
+            if (actionMode != null) {
+                actionMode.finish();
+            }
         }
 
         Collections.sort(selectionList, Collections.<Integer>reverseOrder());
@@ -257,6 +337,45 @@ public class MainActivity extends AppCompatActivity implements MyContentObserver
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
     }
 
+    private void showDeleteConfirmationDialog() {
+
+        final Dialog dialog = new Dialog(mActivity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.setContentView(R.layout.delete_message_dialog);
+
+        TextView title = dialog.findViewById(R.id.txtDeleteHeader);
+
+        int numberToDelete = selectionList.size();
+        if (numberToDelete > 1) {
+            title.setText(getString(R.string.delete_selected_threads, numberToDelete));
+        } else {
+            title.setText(getString(R.string.delete_selected_thread));
+        }
+
+        final TextView cancelButton = dialog.findViewById(R.id.cancelButton);
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        final TextView deleteButton = dialog.findViewById(R.id.deleteButton);
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteMessages();
+                dialog.dismiss();
+
+                if (actionMode != null) {
+                    actionMode.finish();
+                }
+            }
+        });
+
+        dialog.show();
+    }
 
     //----------------------------------------------------------------------------------------
     //Permissions and Set Default Requests
