@@ -19,4 +19,15 @@
     <string name="select">Select</string>
     <string name="settings">Settings</string>
     <string name="unknown">Unknown</string>
+    <string name="forward_message">Forward Message</string>
+    <string name="copy_message">Copy Message Text</string>
+    <string name="message_text">Message Text</string>
+    <string name="call">Call</string>
+    <string name="view_contact">View Contact</string>
+    <string name="delete_message_thread">Delete Message Thread</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="delete_selected_message">Delete the selected message?</string>
+    <string name="delete_selected_messages">Delete the %1$d selected messages?</string>
+    <string name="delete_entire_thread">Delete entire message thread?</string>
 </resources>

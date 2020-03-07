@@ -2,6 +2,9 @@ package com.neilsmiker.textmessenger;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -15,6 +18,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,16 +31,21 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.text.style.ImageSpan;
+import android.util.Log;
+import android.view.ActionMode;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -72,8 +81,12 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     public static final int DEFAULT_MSG_LENGTH_LIMIT = 160;
     private static final int RC_PHOTO_PICKER = 2;
 
-    //Menu:
+    //Menus:
     Menu optionsMenu;
+    Menu actionMenu;
+
+    //Contexual Action Mode:
+    private ActionMode actionMode;
 
     //UI
     private Toolbar myToolbar;
@@ -94,6 +107,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private String selectedThreadId;
     private String selectedName;
     private boolean newMessage = false;
+    private String forwardedMessage;
 
     //Create new message
     private ConstraintLayout recipientLayout;
@@ -102,6 +116,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
     private Button addRecipientButton;
     private SpannableStringBuilder recipientSpannableBuilder = new SpannableStringBuilder();
     private List<LabelData> recipientsList = new ArrayList<>();
+    private String recipientsTitleText;
 
     //Recipient List RecyclerView
     private RecyclerView recipientRecyclerView;
@@ -162,6 +177,7 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             selectedThreadId = extras.getString("selectedThreadId");
             selectedName = extras.getString("selectedName");
             newMessage = extras.getBoolean("newMessage");
+            forwardedMessage = extras.getString("fwd");
         }
 
         //Set up the toolbar
@@ -269,6 +285,11 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
                 // Clear input box
                 mMessageEditText.setText("");
+
+                if (newMessage){
+                    myToolbar.setTitle((recipientsTitleText != null) ? recipientsTitleText : getString(R.string.new_message));
+                    txtRecipients.setVisibility(View.GONE);
+                }
             }
         });
 
@@ -399,6 +420,17 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         //Content Observer Initialization:
         Handler handler = new Handler();
         myContentObserver = new MyContentObserver(handler);
+
+        if (!newMessage) {
+            initializeSmsList();
+            if (selectedName != null){
+                recipientsTitleText = selectedName;
+            }
+        } else {
+            if (forwardedMessage != null){
+                mMessageEditText.setText(forwardedMessage);
+            }
+        }
     }
 
     @Override
@@ -415,6 +447,13 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
         optionsMenu = menu;
+
+        if (selectedAddress != null) {
+            optionsMenu.findItem(R.id.call_item).setVisible(true);
+            optionsMenu.findItem(R.id.contact_item).setVisible(true);
+            optionsMenu.findItem(R.id.delete_item).setVisible(true);
+        }
+
         return true;
     }
 
@@ -424,8 +463,27 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             case android.R.id.home:
                 NavUtils.navigateUpFromSameTask(this);
                 return true;
+            case R.id.call_item:
+                if (selectedAddress != null && recipientsList.size() <= 1){
+                    //No permissions required for ACTION_DIAL. Calling directly from app using ACTION_CALL requires permission grants (see Manifest)
+                    Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + selectedAddress));
+                    startActivity(intent);
+                }
+                return true;
+            case R.id.contact_item:
+                if (selectedAddress != null && recipientsList.size() <= 1){
+                    String contactID = getContactId(selectedAddress,mContext);
+                    if (!contactID.equals("")) {
+                        //No permissions required for ACTION_DIAL. Calling directly from app using ACTION_CALL requires permission grants (see Manifest)
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactID);
+                        intent.setData(uri);
+                        startActivity(intent);
+                    }
+                }
+                return true;
             case R.id.delete_item:
-                deleteMessages();
+                showDeleteConfirmationDialog(true);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -438,9 +496,6 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
         //SMS Initialization:
         if (checkPermission() && selectedAddress != null){
-
-            initializeSmsList();
-
             registerContentObserver();
         }
 
@@ -466,6 +521,85 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         int width = (size.x);
 
         recyclerAdapter.setMaxWidth(width);
+    }
+
+    //Contexual Action Mode and item selection
+    //Set up Contexual Action Mode
+    private ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
+
+        // Called when the action mode is created; startActionMode() was called
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            // Inflate a menu resource providing context menu items
+            MenuInflater inflater = mode.getMenuInflater();
+            inflater.inflate(R.menu.contextual_action_menu, menu);
+
+            actionMenu = menu;
+            return true;
+        }
+
+        // Called each time the action mode is shown. Always called after onCreateActionMode, but
+        // may be called multiple times if the mode is invalidated.
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false; // Return false if nothing is done
+        }
+
+        // Called when the user selects a contextual menu item
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.forward_item:
+                    Intent intent = new Intent(MainActivitySMS.this,MainActivitySMS.class);
+                    intent.putExtra("newMessage",true);
+                    intent.putExtra("fwd","Fwd:" + listMessages.get(selectionList.get(0)).getMsg());
+                    //To remove transition animation:
+                    //intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    startActivity(intent);
+                    /*if (actionMode != null) {
+                        actionMode.finish();
+                    }*/
+                    return true;
+                case R.id.copy_item:
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText(getString(R.string.message_text), listMessages.get(selectionList.get(0)).getMsg());
+                    clipboard.setPrimaryClip(clip);
+                    if (actionMode != null) {
+                        actionMode.finish();
+                    }
+                    return true;
+                case R.id.delete_item:
+                    showDeleteConfirmationDialog(false);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // Called when the user exits the action mode
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            endActionMode();
+            actionMode = null;
+        }
+    };
+
+    private void startActionMode(){
+        if (actionMode == null) {
+            // Start the CAB using the ActionMode.Callback defined above
+            actionMode = mActivity.startActionMode(actionModeCallback);
+        }
+    }
+
+    private void endActionMode(){
+        if (actionMode != null){
+            for (int position : selectionList){
+                Sms message = listMessages.get(position);
+                message.setSelected(false);
+                recyclerAdapter.notifyItemChanged(position);
+            }
+            selectionList.clear();
+        }
     }
 
     private void selectListItem(int position, View view, boolean longClick) {
@@ -499,9 +633,22 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         }
 
         if (selectionList.size() > 0) {
-            optionsMenu.findItem(R.id.delete_item).setVisible(true);
+            startActionMode();
+            //optionsMenu.findItem(R.id.delete_item).setVisible(true);
+            if (selectionList.size() > 1){
+                actionMenu.findItem(R.id.copy_item).setVisible(false);
+                actionMenu.findItem(R.id.forward_item).setVisible(false);
+                actionMenu.findItem(R.id.delete_item).setIcon(R.drawable.ic_delete_sweep_white_24dp);
+            } else {
+                actionMenu.findItem(R.id.copy_item).setVisible(true);
+                actionMenu.findItem(R.id.forward_item).setVisible(true);
+                actionMenu.findItem(R.id.delete_item).setIcon(R.drawable.ic_delete_white_24dp);
+            }
         } else {
-            optionsMenu.findItem(R.id.delete_item).setVisible(false);
+            if (actionMode != null) {
+                actionMode.finish();
+            }
+            //optionsMenu.findItem(R.id.delete_item).setVisible(false);
         }
 
         Collections.sort(selectionList, Collections.<Integer>reverseOrder());
@@ -524,6 +671,67 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
         selectionList.clear();
         optionsMenu.findItem(R.id.delete_item).setVisible(false);
+    }
+
+    private void deleteMessageThread() {
+        //TODO add error handling
+        if (listMessages.size() > 0) {
+            String threadId = listMessages.get(0).getThreadId();
+            if (threadId != null) {
+                getContentResolver().delete(Uri.parse("content://sms/conversations/" + threadId), null, null);
+                Intent intent = new Intent(MainActivitySMS.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+            }
+        }
+    }
+
+    private void showDeleteConfirmationDialog(final boolean deleteThread) {
+
+        final Dialog dialog = new Dialog(mActivity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.setContentView(R.layout.delete_message_dialog);
+
+        TextView title = dialog.findViewById(R.id.txtDeleteHeader);
+
+        if (deleteThread){
+            title.setText(getString(R.string.delete_entire_thread));
+        } else {
+            int numberToDelete = selectionList.size();
+            if (numberToDelete > 1) {
+                title.setText(getString(R.string.delete_selected_messages, numberToDelete));
+            } else {
+                title.setText(getString(R.string.delete_selected_message));
+            }
+        }
+
+        final TextView cancelButton = dialog.findViewById(R.id.cancelButton);
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        final TextView deleteButton = dialog.findViewById(R.id.deleteButton);
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (deleteThread){
+                    deleteMessageThread();
+                } else {
+                    deleteMessages();
+                }
+                dialog.dismiss();
+
+                if (actionMode != null) {
+                    actionMode.finish();
+                }
+            }
+        });
+
+        dialog.show();
     }
 
 
@@ -862,6 +1070,35 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
         return null;
     }
 
+    public String getContactId(final String phoneNumber, Context context)
+    {
+        if (checkPermission()) {
+            Uri uri;
+
+            String[] projection;
+            if (phoneNumber.contains("@")){
+                uri = Uri.withAppendedPath(ContactsContract.CommonDataKinds.Email.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+                projection = new String[]{ContactsContract.CommonDataKinds.Email.CONTACT_ID};
+            } else {
+                uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+                projection = new String[]{ContactsContract.PhoneLookup._ID};
+            }
+
+            String contactId = "";
+            Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
+
+            if (cursor != null) {
+                if (cursor.moveToFirst()) {
+                    contactId = cursor.getString(0);
+                }
+                cursor.close();
+            }
+
+            return contactId;
+        }
+        return null;
+    }
+
     public void insertRecipientNumber(String number, String name){
 
         final LabelData newContact = new LabelData();
@@ -900,6 +1137,41 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
 
         if (!contentObserverRegistered){
             registerContentObserver();
+        }
+
+        if (recipientsList.size() == 1) {
+            optionsMenu.findItem(R.id.call_item).setVisible(true);
+            optionsMenu.findItem(R.id.contact_item).setVisible(true);
+            optionsMenu.findItem(R.id.delete_item).setVisible(true);
+        } else {
+            optionsMenu.findItem(R.id.call_item).setVisible(false);
+            optionsMenu.findItem(R.id.contact_item).setVisible(false);
+            optionsMenu.findItem(R.id.delete_item).setVisible(true);
+        }
+    }
+
+    public void hideMessageMenuItems(boolean hideItems){
+        if (hideItems) {
+            optionsMenu.findItem(R.id.call_item).setVisible(false);
+            optionsMenu.findItem(R.id.contact_item).setVisible(false);
+            optionsMenu.findItem(R.id.delete_item).setVisible(false);
+        } else {
+            optionsMenu.findItem(R.id.call_item).setVisible(true);
+            optionsMenu.findItem(R.id.contact_item).setVisible(true);
+            optionsMenu.findItem(R.id.delete_item).setVisible(true);
+        }
+    }
+
+    public void openContactCard(String selectedAddress){
+        if (selectedAddress != null){
+            String contactID = getContactId(selectedAddress,mContext);
+            if (!contactID.equals("")) {
+                //No permissions required for ACTION_DIAL. Calling directly from app using ACTION_CALL requires permission grants (see Manifest)
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactID);
+                intent.setData(uri);
+                startActivity(intent);
+            }
         }
     }
 
@@ -950,6 +1222,19 @@ public class MainActivitySMS extends AppCompatActivity implements MyContentObser
             recipientRecyclerView.setVisibility(View.GONE);
             txtRecipients.setVisibility(View.VISIBLE);
             int recipientCount = recipientsList.size();
+
+            if (recipientCount > 0){
+                if (recipientCount > 2) {
+                    recipientsTitleText = getString(R.string.recipients_title,recipientsList.get(0).getValue(),recipientCount - 1);
+                } else if (recipientCount == 2){
+                    recipientsTitleText = getString(R.string.recipient_title,recipientsList.get(0).getValue());
+                } else {
+                    recipientsTitleText = recipientsList.get(0).getValue();
+                }
+
+                txtRecipients.setText(recipientsTitleText);
+            }
+
             if (recipientCount > 2) {
                 txtRecipients.setText(getString(R.string.recipients_title,
                         recipientsList.get(0).getValue(),
