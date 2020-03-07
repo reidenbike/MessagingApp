@@ -73,7 +73,7 @@ public class MainActivitySettings extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_sms); // Need to make main_activity_settings.xml for layout
+        setContentView(R.layout.activity_main_settings);
 
         // Get the application context
         mContext = getApplicationContext();
