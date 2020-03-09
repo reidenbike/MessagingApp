@@ -70,6 +70,9 @@ public class MainActivitySettings extends AppCompatActivity {
     //Menu:
     Menu optionsMenu;
 
+    //UI
+    private Toolbar myToolbar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,5 +81,11 @@ public class MainActivitySettings extends AppCompatActivity {
         // Get the application context
         mContext = getApplicationContext();
         mActivity = MainActivitySettings.this;
+
+        //Set up the toolbar
+        myToolbar = findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
     }
 }
